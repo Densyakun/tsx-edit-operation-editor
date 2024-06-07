@@ -40,7 +40,7 @@ export default function Tree() {
 
   return <Stack spacing={1}>
     {tree.map(file => (
-      <Tooltip title={file.data}>
+      <Tooltip key={file.path} title={file.data}>
         <Paper sx={{ p: 1 }}>
           {file.path}
         </Paper>

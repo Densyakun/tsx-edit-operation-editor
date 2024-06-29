@@ -1,46 +1,38 @@
-import { readFile, readdir } from "fs/promises";
-import type { NextApiRequest, NextApiResponse } from "next";
-import { join } from "path";
+import { NextApiRequest, NextApiResponse } from "next";
+import { TSMorphSourceFileType, getFromSourceFile } from "@/tree/code-compiler/ts-morph/compiler";
+import { Project } from "ts-morph";
+import path from "path";
 
-export type Dir = {
-  path: string;
-  data: string;
-}[];
+function loadDirectory(projectPath: string) {
+  const project = new Project({
+    tsConfigFilePath: path.join(projectPath, 'tsconfig.json'),
+  });
 
-const recursiveReadDir = async (dirPath: string) => {
-  const files: Dir = [];
+  const sourceFiles = project.getSourceFiles();
 
-  const allDirents = await readdir(dirPath, { withFileTypes: true });
+  const json: TSMorphSourceFileType[] = sourceFiles.map(sourceFile => getFromSourceFile(sourceFile));
 
-  for (const dirent of allDirents) {
-    const path = join(dirPath, dirent.name);
-    if (dirent.isDirectory()) {
-      files.push(...(await recursiveReadDir(path)));
-    } else if (dirent.isFile()) {
-      files.push({
-        path,
-        data: (await readFile(path)).toString(),
-      });
-    }
-  }
+  return json;
+}
 
-  return files;
-};
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<Dir | Error>,
-) {
+export default function route(req: NextApiRequest, res: NextApiResponse<TSMorphSourceFileType[] | string>) {
   try {
-    const dirPath = req.query.dirPath;
-    if (typeof dirPath !== "string") res.status(500).end();
+    if (req.method === 'GET') {
+      const projectPath = req.query.dirPath as string;
 
-    res.status(200).json(await recursiveReadDir(dirPath as string));
-  } catch (e) {
-    if (e instanceof Error) {
-      res.status(500).json(e);
-    } else {
-      res.status(500).end();
+      const json = loadDirectory(projectPath);
+
+      res.status(200).json(json);
     }
-  };
+  } catch (err) {
+    res.status(400);
+
+    if (err instanceof Error)
+      return res.send(err.message);
+    else if (typeof err === 'string')
+      return res.send(err);
+
+    console.error(err);
+    return res.end();
+  }
 }

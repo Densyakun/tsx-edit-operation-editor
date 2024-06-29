@@ -1,5 +1,6 @@
 import FilePathInput from "@/tree/components/FilePathInput";
 import Tree from "@/tree/components/Tree";
+import { Stack } from "@mui/material";
 import Head from "next/head";
 
 export default function Home() {
@@ -10,8 +11,10 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <main>
-        <FilePathInput />
-        <Tree />
+        <Stack spacing={1}>
+          <FilePathInput />
+          <Tree />
+        </Stack>
       </main>
     </>
   );

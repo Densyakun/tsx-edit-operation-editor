@@ -3,12 +3,6 @@ import { NodeJson, TSMorphSourceFileType } from "../compiler";
 import { SyntaxKind } from "ts-morph";
 import treeState from "@/tree/lib/state";
 
-export const kindCount = 363;
-
-export function getKindHue(kind: number) {
-  return kind * 360 / kindCount;
-}
-
 export function TreeNodeListItem({ text, color, onClick }: { text: string, color: string, onClick: () => void }) {
   return <ListItem disablePadding sx={{ backgroundColor: color }}>
     <ListItemButton onClick={onClick}>

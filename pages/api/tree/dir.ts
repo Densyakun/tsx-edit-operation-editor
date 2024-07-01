@@ -10,9 +10,7 @@ function loadDirectory(projectPath: string) {
 
   const sourceFiles = project.getSourceFiles();
 
-  const json: TSMorphSourceFileType[] = sourceFiles.map(sourceFile => getFromSourceFile(sourceFile));
-
-  return json;
+  return sourceFiles.map(sourceFile => getFromSourceFile(path.resolve(process.cwd(), projectPath), sourceFile));
 }
 
 export default function route(req: NextApiRequest, res: NextApiResponse<TSMorphSourceFileType[] | string>) {

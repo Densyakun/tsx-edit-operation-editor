@@ -1,7 +1,9 @@
+import path from 'path';
 import { Node, SourceFile, SyntaxKind, SyntaxList } from 'ts-morph';
 
 export type TSMorphSourceFileType = {
   filePath: string;
+  relativeFilePath: string;
   syntaxList: NodeJson & {
     children: NodeJson[];
   };
@@ -17,11 +19,13 @@ export function getChildrenOtherThanComments(node: Node) {
   );
 }
 
-export function getFromSourceFile(sourceFile: SourceFile): TSMorphSourceFileType {
+export function getFromSourceFile(projectPath: string, sourceFile: SourceFile): TSMorphSourceFileType {
+  const filePath = sourceFile.getFilePath();
   const children = sourceFile.getChildren();
 
   return {
-    filePath: sourceFile.getFilePath(),
+    filePath,
+    relativeFilePath: path.relative(projectPath, filePath),
     syntaxList: getFromSyntaxList(children[0] as SyntaxList),
     commentRangesAtEndOfFile: children[1].getLeadingCommentRanges().map(commentRange => commentRange.getText()),
   };

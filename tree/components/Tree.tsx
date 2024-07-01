@@ -9,7 +9,7 @@ import HomeIcon from "@mui/icons-material/Home";
 export default function Tree() {
   const { dirPath, breadcrumbs } = useSnapshot(treeState);
 
-  const [tree, setTree] = useState<TSMorphSourceFileType[]>([]);
+  const [sourceFiles, setSourceFiles] = useState<TSMorphSourceFileType[]>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error>();
 
@@ -17,18 +17,13 @@ export default function Tree() {
     setLoading(true);
     fetch(`/api/tree/dir?dirPath=${dirPath}`)
       .then(res => res.json())
-      .then((json: TSMorphSourceFileType[] | Error) => {
+      .then((json: TSMorphSourceFileType[]) => {
         setLoading(false);
-        if (Array.isArray(json)) {
-          setTree(json);
-          setError(null!);
-          console.log(json);
-        } else {
-          throw json;
-        }
+        setSourceFiles(json);
+        setError(null!);
       })
       .catch(e => {
-        setTree([]);
+        setSourceFiles(undefined);
         setError(e);
       });
   }, [dirPath]);
@@ -40,8 +35,10 @@ export default function Tree() {
   }
 
   if (loading) {
-    return <Skeleton variant="rectangular" />;
+    return <Skeleton variant="rectangular" sx={{ maxWidth: 360 }} />;
   }
+
+  if (!sourceFiles) return <></>;
 
   return <Stack spacing={1}>
     {0 < breadcrumbs.length && <Stack spacing={1} direction="row" alignItems="center">
@@ -51,15 +48,15 @@ export default function Tree() {
       <Breadcrumbs separator=">" maxItems={2}>
         {breadcrumbs.map((value, index, array) =>
           index === array.length - 1
-            ? <Typography color="text.primary">{value.label}</Typography>
-            : <Link component="button" variant="body2" color="inherit" onClick={() => treeState.breadcrumbs.splice(index + 1)}>
+            ? <Typography key={index} color="text.primary">{value.label}</Typography>
+            : <Link key={index} component="button" variant="body2" color="inherit" onClick={() => treeState.breadcrumbs.splice(index + 1)}>
               {value.label}
             </Link>
         )}
       </Breadcrumbs>
     </Stack>}
-    <List dense>
-      <ListItems tree={tree} breadcrumbsPath={breadcrumbs.map(value => value.path)} />
+    <List dense sx={{ maxWidth: 360 }}>
+      <ListItems sourceFiles={sourceFiles} breadcrumbsPath={breadcrumbs.map(value => value.path)} />
     </List>
   </Stack>;
 }

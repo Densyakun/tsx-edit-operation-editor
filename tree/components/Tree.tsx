@@ -7,9 +7,8 @@ import { ListItems } from "../code-compiler/ts-morph/client/editor";
 import HomeIcon from "@mui/icons-material/Home";
 
 export default function Tree() {
-  const { dirPath, breadcrumbs } = useSnapshot(treeState);
+  const { dirPath, nodeTree, breadcrumbs } = useSnapshot(treeState);
 
-  const [sourceFiles, setSourceFiles] = useState<TSMorphSourceFileType[]>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error>();
 
@@ -17,13 +16,13 @@ export default function Tree() {
     setLoading(true);
     fetch(`/api/tree/dir?dirPath=${dirPath}`)
       .then(res => res.json())
-      .then((json: TSMorphSourceFileType[]) => {
+      .then((nodeTree: TSMorphSourceFileType[]) => {
         setLoading(false);
-        setSourceFiles(json);
+        treeState.nodeTree = nodeTree;
         setError(null!);
       })
       .catch(e => {
-        setSourceFiles(undefined);
+        treeState.nodeTree = undefined;
         setError(e);
       });
   }, [dirPath]);
@@ -38,7 +37,7 @@ export default function Tree() {
     return <Skeleton variant="rectangular" sx={{ maxWidth: 360 }} />;
   }
 
-  if (!sourceFiles) return <></>;
+  if (!nodeTree) return null;
 
   return <Stack spacing={1}>
     {0 < breadcrumbs.length && <Stack spacing={1} direction="row" alignItems="center">
@@ -56,7 +55,7 @@ export default function Tree() {
       </Breadcrumbs>
     </Stack>}
     <List dense sx={{ maxWidth: 360 }}>
-      <ListItems sourceFiles={sourceFiles} breadcrumbsPath={breadcrumbs.map(value => value.path)} />
+      <ListItems breadcrumbsPath={breadcrumbs.map(value => value.path)} />
     </List>
   </Stack>;
 }

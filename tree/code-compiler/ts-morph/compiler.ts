@@ -1,12 +1,35 @@
+import { TreeNodeType } from '@/tree/lib/type';
 import path from 'path';
-import { Node, SourceFile, SyntaxKind, SyntaxList } from 'ts-morph';
+import { Node, Project, SourceFile, SyntaxKind, SyntaxList } from 'ts-morph';
+import { CodeCompilerType, getNodeByBreadcrumbFunc } from '../type';
 
-export type TSMorphSourceFileType = {
+export const SourceFilesTypeId = 'densyakun-tsmorph-sourcefiles';
+
+export type TSMorphSourceFilesType = TreeNodeType & {
+  type: typeof SourceFilesTypeId;
+  sourceFiles: TSMorphSourceFileType[];
+};
+
+export function loadDirectory(projectPath: string): TSMorphSourceFilesType {
+  const project = new Project({
+    tsConfigFilePath: path.join(projectPath, 'tsconfig.json'),
+  });
+
+  const sourceFiles = project.getSourceFiles();
+
+  return {
+    type: 'densyakun-tsmorph-sourcefiles',
+    sourceFiles: sourceFiles.map(sourceFile => getFromSourceFile(path.resolve(process.cwd(), projectPath), sourceFile)),
+  };
+}
+
+export const SourceFileTypeId = 'densyakun-tsmorph-sourcefile';
+
+export type TSMorphSourceFileType = TreeNodeType & {
+  type: typeof SourceFileTypeId;
   filePath: string;
   relativeFilePath: string;
-  syntaxList: NodeJson & {
-    children: NodeJson[];
-  };
+  syntaxList: TSMorphSyntaxListType;
   commentRangesAtEndOfFile: string[];
 };
 
@@ -24,6 +47,7 @@ export function getFromSourceFile(projectPath: string, sourceFile: SourceFile): 
   const children = sourceFile.getChildren();
 
   return {
+    type: 'densyakun-tsmorph-sourcefile',
     filePath,
     relativeFilePath: path.relative(projectPath, filePath),
     syntaxList: getFromSyntaxList(children[0] as SyntaxList),
@@ -37,7 +61,7 @@ export function setToSourceFile(sourceFile: SourceFile, json: ReturnType<typeof 
 
   // Add nodes and new comment ranges at end of file
   let text = "";
-  function addChildText(nodeJson: NodeJson) {
+  function addChildText(nodeJson: TSMorphNodeType) {
     if (nodeJson.children)
       nodeJson.children.forEach(childJson => addChildText(childJson));
     else {
@@ -68,41 +92,81 @@ export function setToSourceFile(sourceFile: SourceFile, json: ReturnType<typeof 
   );
 }
 
-export type NodeJson = {
+export type TSMorphNodeType = TreeNodeType & {
+  type: typeof SyntaxListTypeId | typeof OtherNodeTypeId;
   kind: SyntaxKind;
-  children?: NodeJson[];
+  children?: TSMorphNodeType[];
   text?: string;
   leadingCommentRanges?: string[];
   trailingCommentRanges?: string[];
 };
 
-export function getFromNode(node: Node): NodeJson {
-  const kind = node.getKind();
+export const SyntaxListTypeId = 'densyakun-tsmorph-syntaxlist';
 
-  const children = getChildrenOtherThanComments(node);
+export type TSMorphSyntaxListType = TSMorphNodeType & {
+  type: typeof SyntaxListTypeId;
+  kind: SyntaxKind.SyntaxList;
+  children: TSMorphNodeType[];
+};
 
-  return children.length
-    ? {
-      kind,
-      children: children.map(child =>
-        child.isKind(SyntaxKind.SyntaxList)
-          ? getFromSyntaxList(child as SyntaxList)
-          : getFromNode(child)),
-    }
-    : {
-      kind,
-      text: node.getText(),
-      leadingCommentRanges: node.getLeadingCommentRanges().map(commentRange => commentRange.getText()),
-      trailingCommentRanges: node.getTrailingCommentRanges().map(commentRange => commentRange.getText()),
-    };
-}
-
-export function getFromSyntaxList(syntaxList: SyntaxList): NodeJson & { children: NodeJson[] } {
+export function getFromSyntaxList(syntaxList: SyntaxList): TSMorphSyntaxListType {
   // 次の兄弟要素と重複するため、leadingCommentRangesは含まない
   const children = getChildrenOtherThanComments(syntaxList);
 
   return {
-    kind: syntaxList.getKind(),
-    children: children.map(child => getFromNode(child)),
+    type: 'densyakun-tsmorph-syntaxlist',
+    kind: syntaxList.getKind() as SyntaxKind.SyntaxList,
+    children: children.map(child => getFromOtherNode(child)),
   };
 }
+
+export const OtherNodeTypeId = 'densyakun-tsmorph-othernode';
+
+export type TSMorphOtherNodeType = TSMorphNodeType & {
+  type: typeof OtherNodeTypeId;
+};
+
+export function getFromOtherNode(node: Node): TSMorphOtherNodeType {
+  const kind = node.getKind();
+
+  const children = getChildrenOtherThanComments(node);
+
+  return {
+    type: 'densyakun-tsmorph-othernode',
+    ...children.length
+      ? {
+        kind,
+        children: children.map(child =>
+          child.isKind(SyntaxKind.SyntaxList)
+            ? getFromSyntaxList(child as SyntaxList)
+            : getFromOtherNode(child)),
+      }
+      : {
+        kind,
+        text: node.getText(),
+        leadingCommentRanges: node.getLeadingCommentRanges().map(commentRange => commentRange.getText()),
+        trailingCommentRanges: node.getTrailingCommentRanges().map(commentRange => commentRange.getText()),
+      }
+  };
+}
+
+const getNodeByBreadcrumbFuncMap: { [key: string]: getNodeByBreadcrumbFunc } = {
+  [SourceFilesTypeId]: (node, breadcrumb) => {
+    const sourceFiles = (node as TSMorphSourceFilesType).sourceFiles;
+    return sourceFiles.find(({ filePath }) => filePath === breadcrumb);
+  },
+  [SourceFileTypeId]: (node, breadcrumb) => {
+    const sourceFile = node as TSMorphSourceFileType;
+    return sourceFile.syntaxList.children[parseInt(breadcrumb)];
+  },
+  [SyntaxListTypeId]: (node, breadcrumb) => {
+    const syntaxList = node as TSMorphSyntaxListType;
+    return syntaxList.children[parseInt(breadcrumb)];
+  },
+  [OtherNodeTypeId]: (node, breadcrumb) => {
+    const otherNode = node as TSMorphOtherNodeType;
+    return otherNode.children ? otherNode.children[parseInt(breadcrumb)] : undefined;
+  },
+};
+
+export default { getNodeByBreadcrumbFuncMap } as CodeCompilerType;

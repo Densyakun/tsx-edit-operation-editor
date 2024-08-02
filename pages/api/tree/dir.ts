@@ -1,19 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { TSMorphSourceFileType, getFromSourceFile } from "@/tree/code-compiler/ts-morph/compiler";
-import { Project } from "ts-morph";
-import path from "path";
+import { loadDirectory, TSMorphSourceFilesType } from "@/tree/code-compiler/ts-morph/compiler";
 
-function loadDirectory(projectPath: string) {
-  const project = new Project({
-    tsConfigFilePath: path.join(projectPath, 'tsconfig.json'),
-  });
-
-  const sourceFiles = project.getSourceFiles();
-
-  return sourceFiles.map(sourceFile => getFromSourceFile(path.resolve(process.cwd(), projectPath), sourceFile));
-}
-
-export default function route(req: NextApiRequest, res: NextApiResponse<TSMorphSourceFileType[] | string>) {
+export default function route(req: NextApiRequest, res: NextApiResponse<TSMorphSourceFilesType | string>) {
   try {
     if (req.method === 'GET') {
       const projectPath = req.query.dirPath as string;

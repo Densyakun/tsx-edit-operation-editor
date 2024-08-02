@@ -2,9 +2,19 @@ import { useSnapshot } from "valtio";
 import treeState from "../lib/state";
 import { useEffect, useState } from "react";
 import { Breadcrumbs, IconButton, Link, List, Skeleton, Stack, Typography } from "@mui/material";
-import { TSMorphSourceFileType } from "../code-compiler/ts-morph/compiler";
-import { ListItems } from "../code-compiler/ts-morph/client/editor";
+import { TSMorphSourceFilesType } from "../code-compiler/ts-morph/compiler";
 import HomeIcon from "@mui/icons-material/Home";
+import editor from "../code-compiler/ts-morph/client/editor";
+
+function ItemList() {
+  const { navigatedNode } = useSnapshot(treeState);
+
+  if (!navigatedNode) return null;
+
+  const ItemList = editor.itemListFuncMap[navigatedNode.type];
+
+  return ItemList ? <ItemList /> : null;
+}
 
 export default function Tree() {
   const { dirPath, nodeTree, breadcrumbs } = useSnapshot(treeState);
@@ -16,9 +26,9 @@ export default function Tree() {
     setLoading(true);
     fetch(`/api/tree/dir?dirPath=${dirPath}`)
       .then(res => res.json())
-      .then((nodeTree: TSMorphSourceFileType[]) => {
+      .then((sourceFilesNode: TSMorphSourceFilesType) => {
         setLoading(false);
-        treeState.nodeTree = nodeTree;
+        treeState.nodeTree = sourceFilesNode;
         setError(null!);
       })
       .catch(e => {
@@ -55,7 +65,7 @@ export default function Tree() {
       </Breadcrumbs>
     </Stack>}
     <List dense sx={{ maxWidth: 360 }}>
-      <ListItems breadcrumbsPath={breadcrumbs.map(value => value.path)} />
+      <ItemList />
     </List>
   </Stack>;
 }

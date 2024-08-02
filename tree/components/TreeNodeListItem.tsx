@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { NodeJson, TSMorphSourceFileType } from "../code-compiler/ts-morph/compiler";
 import treeState from "../lib/state";
 import { ClickAwayListener, IconButton, ListItem, ListItemButton, ListItemText, Tooltip } from "@mui/material";
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { getNodeByBreadcrumbs } from "../lib/util";
 
 function CopyToClipboardButton({ path }: { path: string[] }) {
   const [open, setOpen] = useState(false);
@@ -12,25 +12,9 @@ function CopyToClipboardButton({ path }: { path: string[] }) {
   };
 
   const handleClick = () => {
-    if (!treeState.nodeTree) return null;
+    if (!treeState.nodeTree) return;
 
-    let nodeList: TSMorphSourceFileType[] | NodeJson[] | undefined = treeState.nodeTree as TSMorphSourceFileType[];
-    let node: TSMorphSourceFileType | NodeJson | undefined;
-
-    for (let n = 0; n < path.length; n++) {
-      if (!nodeList) return null;
-      node = nodeList.find((node, index) =>
-        (node as TSMorphSourceFileType).filePath === undefined
-          ? path[n] === index.toString()
-          : path[n] === (node as TSMorphSourceFileType).filePath
-      ) as TSMorphSourceFileType | NodeJson | undefined;
-      if (!node) return null;
-      nodeList = (node as TSMorphSourceFileType).filePath === undefined
-        ? (node as NodeJson).children
-        : (node as TSMorphSourceFileType).syntaxList.children;
-    }
-
-    navigator.clipboard.writeText(JSON.stringify(node));
+    navigator.clipboard.writeText(JSON.stringify(getNodeByBreadcrumbs(treeState.nodeTree, path)));
 
     setOpen(true);
   };

@@ -1,7 +1,4 @@
-import React from "react";
-import { TreeNodeType } from "../lib/type";
-
-export type getNodeByBreadcrumbFunc = (node: TreeNodeType, breadcrumb: string) => TreeNodeType | undefined;
+import { getNodeByBreadcrumbFunc } from "../lib/type";
 
 export type CodeCompilerType = {
   getNodeByBreadcrumbFuncMap: { [key: string]: getNodeByBreadcrumbFunc };

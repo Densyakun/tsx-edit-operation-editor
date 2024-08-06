@@ -4,7 +4,7 @@ import { ClickAwayListener, IconButton, ListItem, ListItemButton, ListItemText, 
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { getNodeByBreadcrumbs } from "../lib/util";
 
-function CopyToClipboardButton({ path }: { path: string[] }) {
+function CopyToClipboardButton({ breadcrumbPaths }: { breadcrumbPaths: string[] }) {
   const [open, setOpen] = useState(false);
 
   const handleTooltipClose = () => {
@@ -14,7 +14,7 @@ function CopyToClipboardButton({ path }: { path: string[] }) {
   const handleClick = () => {
     if (!treeState.nodeTree) return;
 
-    navigator.clipboard.writeText(JSON.stringify(getNodeByBreadcrumbs(treeState.nodeTree, path)));
+    navigator.clipboard.writeText(JSON.stringify(getNodeByBreadcrumbs(treeState.nodeTree, breadcrumbPaths)));
 
     setOpen(true);
   };
@@ -53,6 +53,6 @@ export default function TreeNodeListItem({
     <ListItemButton onClick={onClick}>
       <ListItemText primary={text} />
     </ListItemButton>
-    <CopyToClipboardButton path={path} />
+    <CopyToClipboardButton breadcrumbPaths={path} />
   </ListItem>;
 }

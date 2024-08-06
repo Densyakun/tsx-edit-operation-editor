@@ -1,16 +1,16 @@
-import { TreeNodeType } from '@/tree/lib/type';
+import { getNodeByBreadcrumbFunc, TreeNodeType } from '@/tree/lib/type';
 import path from 'path';
 import { Node, Project, SourceFile, SyntaxKind, SyntaxList } from 'ts-morph';
-import { CodeCompilerType, getNodeByBreadcrumbFunc } from '../type';
+import { CodeCompilerType } from '../type';
 
-export const SourceFilesTypeId = 'densyakun-tsmorph-sourcefiles';
+export const TSMorphProjectTypeId = 'densyakun-tsmorph-project';
 
-export type TSMorphSourceFilesType = TreeNodeType & {
-  type: typeof SourceFilesTypeId;
+export type TSMorphProjectType = TreeNodeType & {
+  type: typeof TSMorphProjectTypeId;
   sourceFiles: TSMorphSourceFileType[];
 };
 
-export function loadDirectory(projectPath: string): TSMorphSourceFilesType {
+export function loadDirectory(projectPath: string): TSMorphProjectType {
   const project = new Project({
     tsConfigFilePath: path.join(projectPath, 'tsconfig.json'),
   });
@@ -18,7 +18,7 @@ export function loadDirectory(projectPath: string): TSMorphSourceFilesType {
   const sourceFiles = project.getSourceFiles();
 
   return {
-    type: 'densyakun-tsmorph-sourcefiles',
+    type: TSMorphProjectTypeId,
     sourceFiles: sourceFiles.map(sourceFile => getFromSourceFile(path.resolve(process.cwd(), projectPath), sourceFile)),
   };
 }
@@ -47,7 +47,7 @@ export function getFromSourceFile(projectPath: string, sourceFile: SourceFile): 
   const children = sourceFile.getChildren();
 
   return {
-    type: 'densyakun-tsmorph-sourcefile',
+    type: SourceFileTypeId,
     filePath,
     relativeFilePath: path.relative(projectPath, filePath),
     syntaxList: getFromSyntaxList(children[0] as SyntaxList),
@@ -114,7 +114,7 @@ export function getFromSyntaxList(syntaxList: SyntaxList): TSMorphSyntaxListType
   const children = getChildrenOtherThanComments(syntaxList);
 
   return {
-    type: 'densyakun-tsmorph-syntaxlist',
+    type: SyntaxListTypeId,
     kind: syntaxList.getKind() as SyntaxKind.SyntaxList,
     children: children.map(child => getFromOtherNode(child)),
   };
@@ -132,7 +132,7 @@ export function getFromOtherNode(node: Node): TSMorphOtherNodeType {
   const children = getChildrenOtherThanComments(node);
 
   return {
-    type: 'densyakun-tsmorph-othernode',
+    type: OtherNodeTypeId,
     ...children.length
       ? {
         kind,
@@ -151,8 +151,8 @@ export function getFromOtherNode(node: Node): TSMorphOtherNodeType {
 }
 
 const getNodeByBreadcrumbFuncMap: { [key: string]: getNodeByBreadcrumbFunc } = {
-  [SourceFilesTypeId]: (node, breadcrumb) => {
-    const sourceFiles = (node as TSMorphSourceFilesType).sourceFiles;
+  [TSMorphProjectTypeId]: (node, breadcrumb) => {
+    const sourceFiles = (node as TSMorphProjectType).sourceFiles;
     return sourceFiles.find(({ filePath }) => filePath === breadcrumb);
   },
   [SourceFileTypeId]: (node, breadcrumb) => {

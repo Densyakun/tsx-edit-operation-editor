@@ -1,6 +1,5 @@
 import FilePathInput from "@/tree/components/FilePathInput";
 import NodeEditor from "@/tree/components/NodeEditor";
-import Tree from "@/tree/components/Tree";
 import { Stack } from "@mui/material";
 import Head from "next/head";
 
@@ -14,7 +13,6 @@ export default function Home() {
       <main>
         <Stack spacing={1}>
           <FilePathInput />
-          <Tree />
           <NodeEditor />
         </Stack>
       </main>

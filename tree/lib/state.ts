@@ -1,28 +1,28 @@
 import { proxy, subscribe } from 'valtio';
-import { TreeNodeType } from './type';
+import { BreadcrumbPart, TreeNodeType } from './type';
 import { getNodeByBreadcrumbs } from './util';
 import { subscribeKey } from 'valtio/utils';
 
 const treeState = proxy<{
   dirPath: string;
   nodeTree?: TreeNodeType;
-  breadcrumbs: {
-    path: string;
-    label: string;
-  }[];
-  breadcrumbTrail: string[];
+  loading: boolean;
+  error?: Error;
+  breadcrumbs: BreadcrumbPart[];
+  breadcrumbPaths: string[];
   navigatedNode?: TreeNodeType;
 }>({
   dirPath: '.',
+  loading: true,
   breadcrumbs: [],
-  breadcrumbTrail: [],
+  breadcrumbPaths: [],
 });
 
 function updateNavigatedNode() {
   if (!treeState.nodeTree) return;
-  treeState.breadcrumbTrail = treeState.breadcrumbs.map(value => value.path);
+  treeState.breadcrumbPaths = treeState.breadcrumbs.map(value => value.path);
 
-  treeState.navigatedNode = getNodeByBreadcrumbs(treeState.nodeTree, treeState.breadcrumbTrail);
+  treeState.navigatedNode = getNodeByBreadcrumbs(treeState.nodeTree, treeState.breadcrumbPaths);
 }
 
 subscribeKey(treeState, 'nodeTree', updateNavigatedNode);

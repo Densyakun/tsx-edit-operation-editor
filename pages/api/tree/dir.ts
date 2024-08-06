@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { loadDirectory, TSMorphSourceFilesType } from "@/tree/code-compiler/ts-morph/compiler";
+import { loadDirectory, TSMorphProjectType } from "@/tree/code-compiler/ts-morph/compiler";
 
-export default function route(req: NextApiRequest, res: NextApiResponse<TSMorphSourceFilesType | string>) {
+export default function route(req: NextApiRequest, res: NextApiResponse<TSMorphProjectType | string>) {
   try {
     if (req.method === 'GET') {
       const projectPath = req.query.dirPath as string;

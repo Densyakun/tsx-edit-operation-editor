@@ -7,9 +7,10 @@ import { TSMorphProjectType } from "../code-compiler/ts-morph/compiler";
 import { useEffect } from "react";
 import treeCompiler from "../tree-compiler/tsx-edit-operation-editor/compiler";
 import ItemList from "./ItemList";
+import CopyToClipboardButton from "./CopyToClipboardButton";
 
 export default function NodeEditor() {
-  const { dirPath, error, loading, navigatedNode, breadcrumbs } = useSnapshot(treeState);
+  const { dirPath, error, loading, navigatedNode, breadcrumbs, breadcrumbPaths } = useSnapshot(treeState);
 
   useEffect(() => {
     treeState.loading = true;
@@ -57,9 +58,12 @@ export default function NodeEditor() {
         )}
       </Breadcrumbs>
     </Stack>}
-    <Typography variant="h5" component="h1" gutterBottom>
-      {nodeEditor.title}
-    </Typography>
+    <Stack direction="row" spacing={1} alignItems="center">
+      <Typography variant="h5" component="h1" gutterBottom>
+        {nodeEditor.title}
+      </Typography>
+      <CopyToClipboardButton breadcrumbPaths={breadcrumbPaths as string[]} />
+    </Stack>
     <List dense sx={{ maxWidth: 360 }}>
       {nodeEditor.itemLists && Object.keys(nodeEditor.itemLists)
         .sort((keyA, keyB) => (nodeEditor.topItemListKeys?.find(key => key === keyA) ? -1 : 0)

@@ -6,14 +6,11 @@ import { subscribeKey } from 'valtio/utils';
 const treeState = proxy<{
   dirPath: string;
   nodeTree?: TreeNodeType;
-  loading: boolean;
-  error?: Error;
   breadcrumbs: BreadcrumbPart[];
   breadcrumbPaths: string[];
   navigatedNode?: TreeNodeType;
 }>({
   dirPath: '.',
-  loading: true,
   breadcrumbs: [],
   breadcrumbPaths: [],
 });

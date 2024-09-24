@@ -1,6 +1,7 @@
-import tsMorphCompiler, { TSMorphProjectTypeId, TSMorphProjectType, TSMorphSourceFileType, SourceFileTypeId } from "@/tree/code-compiler/ts-morph/compiler";
-import { getNodeByBreadcrumbFunc, TreeNodeType } from "@/tree/lib/type";
-import { TreeCompilerType } from "../type";
+import tsMorphCompiler, { TSMorphProjectTypeId, SourceFileTypeId } from "@/tree/code-compiler/ts-morph/compiler";
+import type { TSMorphProjectType, TSMorphSourceFileType } from "@/tree/code-compiler/ts-morph/compiler";
+import type { getNodeByBreadcrumbFunc, TreeNodeType } from "@/tree/lib/type";
+import type { TreeCompilerType } from "@/tree/tree-compiler/type";
 import normalizePath from "normalize-path";
 import path from "path";
 
@@ -29,85 +30,85 @@ function decompile(tree: TreeNodeType): TreeNodeType {
 
     const nextEnvIndex = sourceFiles.findIndex(sourceFile => sourceFile.relativeFilePath === "next-env.d.ts");
 
-    if (nextEnvIndex !== -1) {
-      const sourceFilesWithoutNextEnv = [...sourceFiles.splice(0, nextEnvIndex), ...sourceFiles.splice(1)];
+    if (nextEnvIndex === -1) return tree;
 
-      const otherSourceFiles: TSMorphSourceFileType[] = [];
+    const sourceFilesWithoutNextEnv = [...sourceFiles.splice(0, nextEnvIndex), ...sourceFiles.splice(1)];
 
-      const filesInAppRouter: TSMorphSourceFileType[] = [];
-      for (const sourceFile of sourceFilesWithoutNextEnv) {
-        if (normalizePath(sourceFile.relativeFilePath).startsWith("app/"))
-          filesInAppRouter.push(sourceFile);
-        else
-          otherSourceFiles.push(sourceFile);
-      }
+    const otherSourceFiles: TSMorphSourceFileType[] = [];
 
-      if (filesInAppRouter.length) {
-        // TODO App Router
+    const filesInAppRouter: TSMorphSourceFileType[] = [];
+    for (const sourceFile of sourceFilesWithoutNextEnv) {
+      if (normalizePath(sourceFile.relativeFilePath).startsWith("app/"))
+        filesInAppRouter.push(sourceFile);
+      else
+        otherSourceFiles.push(sourceFile);
+    }
 
-        return {
-          type: NextJSTypeId,
-          pages: {},
-          unresolvedPages: [],
-          otherSourceFiles,
-        } as NextJSType;
-      } else {
-        // Pages Router
-        const otherSourceFiles_: TSMorphSourceFileType[] = [];
-        const pages: { [key: string]: TSMorphSourceFileType } = {};
-        const unresolvedPages: NextJSUnresolvedPageType[] = [];
-        let customApp: TSMorphSourceFileType | undefined;
-        let customDocument: TSMorphSourceFileType | undefined;
-        for (const sourceFile of otherSourceFiles) {
-          const normalizedPath = normalizePath(sourceFile.relativeFilePath);
+    if (filesInAppRouter.length) {
+      // TODO App Router
 
-          if (normalizedPath.startsWith("pages/")) {
-            const a = path.dirname(normalizedPath).split("/").splice(1);
-            const b = path.basename(normalizedPath, path.extname(normalizedPath));
-            if (b === "_app" && !a.length) {
-              customApp = sourceFile;
-            } else if (b === "_document" && !a.length) {
-              customDocument = sourceFile;
-            } else {
-              let route = "/";
-              if (a.length) route += a.join("/");
-              if (b !== "index") {
-                if (a.length) route += "/";
-                route += b;
-              }
+      return {
+        type: NextJSTypeId,
+        pages: {},
+        unresolvedPages: [],
+        otherSourceFiles,
+      } as NextJSType;
+    } else {
+      // Pages Router
+      const otherSourceFiles_: TSMorphSourceFileType[] = [];
+      const pages: { [key: string]: TSMorphSourceFileType } = {};
+      const unresolvedPages: NextJSUnresolvedPageType[] = [];
+      let customApp: TSMorphSourceFileType | undefined;
+      let customDocument: TSMorphSourceFileType | undefined;
+      for (const sourceFile of otherSourceFiles) {
+        const normalizedPath = normalizePath(sourceFile.relativeFilePath);
 
-              if (pages[route]) {
-                // /xxx/index.tsx よりも /xxx.tsx が優先される
-                if (b === "index")
-                  unresolvedPages.push({
-                    type: "densyakun-nextjs-unresolved-page",
-                    route,
-                    sourceFile,
-                  });
-                else {
-                  unresolvedPages.push({
-                    type: "densyakun-nextjs-unresolved-page",
-                    route,
-                    sourceFile: pages[route],
-                  });
-                  pages[route] = sourceFile;
-                }
-              } else
-                pages[route] = sourceFile;
+        if (normalizedPath.startsWith("pages/")) {
+          const a = path.dirname(normalizedPath).split("/").splice(1);
+          const b = path.basename(normalizedPath, path.extname(normalizedPath));
+          if (b === "_app" && !a.length) {
+            customApp = sourceFile;
+          } else if (b === "_document" && !a.length) {
+            customDocument = sourceFile;
+          } else {
+            let route = "/";
+            if (a.length) route += a.join("/");
+            if (b !== "index") {
+              if (a.length) route += "/";
+              route += b;
             }
-          } else
-            otherSourceFiles_.push(sourceFile);
-        }
 
-        return {
-          type: NextJSTypeId,
-          pages,
-          unresolvedPages,
-          customApp,
-          customDocument,
-          otherSourceFiles: otherSourceFiles_,
-        } as NextJSType;
+            if (pages[route]) {
+              // /xxx/index.tsx よりも /xxx.tsx が優先される
+              if (b === "index")
+                unresolvedPages.push({
+                  type: "densyakun-nextjs-unresolved-page",
+                  route,
+                  sourceFile,
+                });
+              else {
+                unresolvedPages.push({
+                  type: "densyakun-nextjs-unresolved-page",
+                  route,
+                  sourceFile: pages[route],
+                });
+                pages[route] = sourceFile;
+              }
+            } else
+              pages[route] = sourceFile;
+          }
+        } else
+          otherSourceFiles_.push(sourceFile);
       }
+
+      return {
+        type: NextJSTypeId,
+        pages,
+        unresolvedPages,
+        customApp,
+        customDocument,
+        otherSourceFiles: otherSourceFiles_,
+      } as NextJSType;
     }
   }
 

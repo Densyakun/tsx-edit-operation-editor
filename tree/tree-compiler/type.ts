@@ -5,3 +5,12 @@ export type TreeCompilerType = {
   compile: (tree: TreeNodeType) => TreeNodeType;
   getNodeByBreadcrumbFuncMap: { [key: string]: getNodeByBreadcrumbFunc };
 };
+
+export type AddonType = {
+  compilerCode: string;
+  editorCode: string;
+  name?: string;
+  description?: string;
+  author?: string;
+  website?: string;
+};

@@ -1,14 +1,16 @@
+import { readFileSync } from "fs";
 import { NextApiRequest, NextApiResponse } from "next";
-import { loadDirectory } from "@/tree/code-compiler/ts-morph/compiler";
 
 export default function route(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (req.method === 'GET') {
-      const projectPath = req.query.dirPath as string;
+      try {
+        const json = JSON.parse(readFileSync('./addon.json', 'utf8'));
 
-      const json = loadDirectory(projectPath);
-
-      res.status(200).json(json);
+        res.status(200).json(Array.isArray(json) ? json : []);
+      } catch (_) {
+        res.status(200).json([]);
+      }
     }
   } catch (err) {
     if (err instanceof Error) {

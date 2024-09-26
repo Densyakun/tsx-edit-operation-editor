@@ -1,5 +1,6 @@
-import { EditorType, getNodeEditorFunc, TreeNodeListItemType } from "@/tree/lib/type";
-import { NextJSType, NextJSTypeId, NextJSUnresolvedPageType, NextJSUnresolvedPageTypeId } from "./compiler";
+import type { EditorType, getNodeEditorFunc, TreeNodeListItemType } from "@/tree/lib/type";
+import type { NextJSType, NextJSUnresolvedPageType } from "./compiler";
+import { NextJSTypeId, NextJSUnresolvedPageTypeId } from "./compiler";
 import tsMorphEditor from "@/tree/code-compiler/ts-morph/editor";
 import { SourceFileTypeId } from "@/tree/code-compiler/ts-morph/compiler";
 

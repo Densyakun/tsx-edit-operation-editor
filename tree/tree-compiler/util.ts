@@ -1,72 +1,119 @@
 import { Project, SyntaxKind, SyntaxList } from "ts-morph";
-import type { TreeNodeType } from "../lib/type";
 import treeCodeCompilerTSMorphCompiler, * as treeCodeCompilerTSMorphCompilerNamespace from "@/tree/code-compiler/ts-morph/compiler";
 import type { TSMorphNodeType, TSMorphOtherNodeType, TSMorphSyntaxListType } from "@/tree/code-compiler/ts-morph/compiler";
+import treeCodeCompilerTSMorphEditor, * as treeCodeCompilerTSMorphEditorNamespace from "@/tree/code-compiler/ts-morph/editor";
 import normalizePath from "normalize-path";
 import path from "path";
+import { AddonJsonType, AddonType } from "./type";
 
 const { getFromSyntaxList } = treeCodeCompilerTSMorphCompilerNamespace;
 
-// TODO クラス
-// TODO 残余引数、デフォルト引数、分割代入
+// TODO クラス, super
+// TODO 残余引数、デフォルト引数
+// TODO 分割代入（Destructuring assignment - JavaScript | MDN より Unpacking properties from objects passed as a function parameter のみ実装済）
 // TODO Async
+// TODO delete, typeof, void, in, instanceof, this, new, new.target
+// TODO 正規表現リテラル, テンプレートリテラル
+// TODO import.meta, import()
 
 export type ModuleType = { default?: any, object?: { [key: string]: any } };
 
 export type ExportAndReturnValueType = { exports: ModuleType, value?: any };
 
-export function decompileUseText(tree: TreeNodeType, compilerCode: string): TreeNodeType {
-  const project = new Project({
-    useInMemoryFileSystem: true,
-  });
-
-  const sourceFile = project.createSourceFile("", compilerCode);
-
-  const children = sourceFile.getChildren();
-
-  const syntaxList = getFromSyntaxList(children[0] as SyntaxList);
-
-  const modules: { [key: string]: ModuleType } = {
-    "path": {
-      default: {
-        dirname: path.dirname,
-        basename: path.basename,
-        extname: path.extname,
-      },
-      object: {
-        dirname: path.dirname,
-        basename: path.basename,
-        extname: path.extname,
-      },
-    },
-    "normalize-path": {
-      default: normalizePath,
-    },
-    "@/tree/code-compiler/ts-morph/compiler": {
-      default: treeCodeCompilerTSMorphCompiler,
-      object: treeCodeCompilerTSMorphCompilerNamespace,
-    },
-  };
-  const variables: { [key: string]: any }[] = [{
+function getNewVariables(): { [key: string]: any; }[] {
+  return [{
     "console": {
       error: console.error,
       log: console.log,
       warn: console.warn,
     },
+    "Object": {
+      keys: Object.keys,
+      values: Object.values,
+    },
   }];
+}
+
+export function getAddonByJson(json: AddonJsonType): AddonType | undefined {
+  const project = new Project({
+    useInMemoryFileSystem: true,
+  });
+
+  const compilerSourceFile = project.createSourceFile("compiler.ts", json.compilerCode);
+
+  let compilerExports: ModuleType | undefined;
 
   try {
-    // TODO コードの評価を事前に行い、exportsをコンパイル関数のみ随時実行する（getNodeByBreadcrumbFuncMapのため）
-    const exports = evalSyntaxList(syntaxList, variables, modules)?.exports;
-
-    const res = exports?.default?.decompile(tree);
-
-    if (res && res.type) return res;
+    compilerExports = evalSyntaxList(
+      getFromSyntaxList(compilerSourceFile.getChildren()[0] as SyntaxList),
+      getNewVariables(),
+      {
+        "path": {
+          default: {
+            dirname: path.dirname,
+            basename: path.basename,
+            extname: path.extname,
+          },
+          object: {
+            dirname: path.dirname,
+            basename: path.basename,
+            extname: path.extname,
+          },
+        },
+        "normalize-path": {
+          default: normalizePath,
+        },
+        "@/tree/code-compiler/ts-morph/compiler": {
+          default: treeCodeCompilerTSMorphCompiler,
+          object: treeCodeCompilerTSMorphCompilerNamespace,
+        },
+      }
+    )?.exports;
   } catch (e) {
     console.error(e);
   }
 
-  return tree;
+  const compiler = compilerExports?.default;
+  if (!compiler || !compiler.decompile || !compiler.compile || !compiler.getNodeByBreadcrumbFuncMap) return;
+
+  const editorSourceFile = project.createSourceFile("editor.ts", json.editorCode);
+
+  let editorExports: ModuleType | undefined;
+
+  try {
+    editorExports = evalSyntaxList(
+      getFromSyntaxList(editorSourceFile.getChildren()[0] as SyntaxList),
+      getNewVariables(),
+      {
+        "./compiler": {
+          default: compilerExports?.default,
+          object: compilerExports?.object,
+        },
+        "@/tree/code-compiler/ts-morph/compiler": {
+          default: treeCodeCompilerTSMorphCompiler,
+          object: treeCodeCompilerTSMorphCompilerNamespace,
+        },
+        "@/tree/code-compiler/ts-morph/editor": {
+          default: treeCodeCompilerTSMorphEditor,
+          object: treeCodeCompilerTSMorphEditorNamespace,
+        },
+      }
+    )?.exports;
+  } catch (e) {
+    console.error(e);
+  }
+
+  const editor = editorExports?.default;
+  if (!editor || !editor.getNodeEditorFuncMap) return;
+
+  return {
+    compiler,
+    editor,
+    name: json.name,
+    description: json.description,
+    author: json.author,
+    website: json.website,
+  };
 }
 
 function evalSyntax(syntax: TSMorphOtherNodeType, variables: { [key: string]: any }[], modules: { [key: string]: ModuleType } = {}): ExportAndReturnValueType {
@@ -149,16 +196,12 @@ function evalSyntax(syntax: TSMorphOtherNodeType, variables: { [key: string]: an
 
     // TODO ジェネレーター関数
     const identifier = syntax.children![1 + n] as TSMorphOtherNodeType;
-    const syntaxList = syntax.children![3 + n] as TSMorphSyntaxListType;
 
-    const block = syntax.children![(5 < syntax.children!.length ? 7 : 5) + n] as TSMorphOtherNodeType;
-
-    const parameters = [];
-    for (let n = 0; n < syntaxList.children.length; n += 2) {
-      parameters.push(syntaxList.children[n].children![0].text || "");
-    }
-
-    variables[variables.length - 1][identifier.text!] = getFunc(block, parameters, cloneScope(variables));
+    variables[variables.length - 1][identifier.text!] = getFunc(
+      syntax.children![(5 < syntax.children!.length ? 7 : 5) + n] as TSMorphOtherNodeType,
+      syntax.children![3 + n] as TSMorphSyntaxListType,
+      cloneScope(variables)
+    );
 
     return {
       exports: isExport
@@ -176,6 +219,8 @@ function evalSyntax(syntax: TSMorphOtherNodeType, variables: { [key: string]: an
 
     const importClause = syntax.children![1] as TSMorphOtherNodeType;
     if (importClause.children![0].kind === SyntaxKind.TypeKeyword) return { exports: {} };
+
+    if (!module) throw new Error(`Module '${moduleName}' is undefined`);
 
     let n = 0;
     if (importClause.children![0].kind === SyntaxKind.Identifier) {
@@ -339,7 +384,7 @@ function assignVariable(variables: { [key: string]: any }[], key: string, value:
       return variables[n][key] = value;
 }
 
-function evalExpression(syntax: TSMorphOtherNodeType, variables: { [key: string]: any }[]): { value: any, assignmentFunc: any } | undefined {
+function evalExpression(syntax: TSMorphOtherNodeType, variables: { [key: string]: any }[]): { value: any, assignmentFunc: ((value: any) => any) | undefined } | undefined {
   if (syntax.kind === SyntaxKind.StringLiteral) {
     return { value: syntax.text!.substring(1, syntax.text!.length - 1), assignmentFunc: undefined };
   } else if (syntax.kind === SyntaxKind.FirstLiteralToken) {
@@ -347,7 +392,7 @@ function evalExpression(syntax: TSMorphOtherNodeType, variables: { [key: string]
   } else if (syntax.kind === SyntaxKind.Identifier) {
     return { value: getVariableValue(variables, syntax.text!), assignmentFunc: (value: any) => assignVariable(variables, syntax.text!, value) };
   } else if (syntax.kind === SyntaxKind.ComputedPropertyName) {
-    return evalExpression(syntax.children![1] as TSMorphOtherNodeType, variables)?.value;
+    return evalExpression(syntax.children![1] as TSMorphOtherNodeType, variables);
   } else if (syntax.kind === SyntaxKind.ArrayLiteralExpression) {
     const syntaxList = syntax.children![1] as TSMorphSyntaxListType;
 
@@ -367,8 +412,12 @@ function evalExpression(syntax: TSMorphOtherNodeType, variables: { [key: string]
     const object: any = {};
     for (let n = 0; n < syntaxList.children.length; n += 2) {
       if (syntaxList.children[n].kind === SyntaxKind.PropertyAssignment) {
-        const identifier = syntaxList.children[n].children![0] as TSMorphOtherNodeType;
-        object[identifier.text!] = evalExpression(syntaxList.children[n].children![2] as TSMorphOtherNodeType, variables)?.value;
+        const identifierOrComputedPropertyName = syntaxList.children[n].children![0] as TSMorphOtherNodeType;
+        object[
+          identifierOrComputedPropertyName.kind === SyntaxKind.Identifier
+            ? identifierOrComputedPropertyName.text
+            : evalExpression(identifierOrComputedPropertyName, variables)?.value
+        ] = evalExpression(syntaxList.children[n].children![2] as TSMorphOtherNodeType, variables)?.value;
       } else if (syntaxList.children[n].kind === SyntaxKind.ShorthandPropertyAssignment) {
         const identifier = syntaxList.children[n].children![0] as TSMorphOtherNodeType;
         object[identifier.text!] = evalExpression(identifier, variables)?.value;
@@ -378,10 +427,16 @@ function evalExpression(syntax: TSMorphOtherNodeType, variables: { [key: string]
     return { value: object, assignmentFunc: undefined };
   } else if (syntax.kind === SyntaxKind.PropertyAccessExpression) {
     const object = evalExpression(syntax.children![0] as TSMorphOtherNodeType, variables)?.value;
+    if (object === undefined)
+      if (syntax.children![1].kind === SyntaxKind.DotToken)
+        throw new Error(`${addChildCodeTextForLog(syntax.children![0])} is undefined`);
+      else
+        return {
+          value: undefined,
+          assignmentFunc: undefined
+        };
 
-    const text = syntax.children![2].text!;
-
-    const newValue = object[text];
+    const newValue = object[syntax.children![2].text!];
     return {
       value:
         typeof newValue === "function"
@@ -412,38 +467,133 @@ function evalExpression(syntax: TSMorphOtherNodeType, variables: { [key: string]
   } else if (syntax.kind === SyntaxKind.ParenthesizedExpression) {
     return evalExpression(syntax.children![1] as TSMorphOtherNodeType, variables);
   } else if (syntax.kind === SyntaxKind.PrefixUnaryExpression) {
-    if (syntax.children![0].kind === SyntaxKind.MinusToken) {
+    if (syntax.children![0].kind === SyntaxKind.PlusToken)
+      return { value: +evalExpression(syntax.children![1] as TSMorphOtherNodeType, variables)?.value, assignmentFunc: undefined };
+    else if (syntax.children![0].kind === SyntaxKind.MinusToken)
       return { value: -evalExpression(syntax.children![1] as TSMorphOtherNodeType, variables)?.value, assignmentFunc: undefined };
-    } else if (syntax.children![0].kind === SyntaxKind.ExclamationToken) {
+    else if (syntax.children![0].kind === SyntaxKind.PlusPlusToken) {
+      const right = evalExpression(syntax.children![1] as TSMorphOtherNodeType, variables);
+      return { value: right?.assignmentFunc!(++right.value), assignmentFunc: undefined };
+    } else if (syntax.children![1].kind === SyntaxKind.PlusPlusToken) {
+      const left = evalExpression(syntax.children![0] as TSMorphOtherNodeType, variables);
+      const value = left?.value;
+      left?.assignmentFunc!(++left.value);
+      return { value, assignmentFunc: undefined };
+    } else if (syntax.children![0].kind === SyntaxKind.MinusMinusToken) {
+      const right = evalExpression(syntax.children![1] as TSMorphOtherNodeType, variables);
+      return { value: right?.assignmentFunc!(--right.value), assignmentFunc: undefined };
+    } else if (syntax.children![1].kind === SyntaxKind.MinusMinusToken) {
+      const left = evalExpression(syntax.children![0] as TSMorphOtherNodeType, variables);
+      const value = left?.value;
+      left?.assignmentFunc!(--left.value);
+      return { value, assignmentFunc: undefined };
+    } else if (syntax.children![0].kind === SyntaxKind.ExclamationToken)
       return { value: !evalExpression(syntax.children![1] as TSMorphOtherNodeType, variables)?.value, assignmentFunc: undefined };
-    }
+    else if (syntax.children![0].kind === SyntaxKind.TildeToken)
+      return { value: ~evalExpression(syntax.children![1] as TSMorphOtherNodeType, variables)?.value, assignmentFunc: undefined };
+    else
+      throw new Error(SyntaxKind[syntax.children![1].kind]);
   } else if (syntax.kind === SyntaxKind.BinaryExpression) {
     const left = evalExpression(syntax.children![0] as TSMorphOtherNodeType, variables);
     const right = evalExpression(syntax.children![2] as TSMorphOtherNodeType, variables);
 
-    if (syntax.children![1].kind === SyntaxKind.EqualsEqualsEqualsToken) {
+    if (syntax.children![1].kind === SyntaxKind.CommaToken)
+      return { value: right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.FirstBinaryOperator)
+      return { value: left?.value < right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.GreaterThanToken)
+      return { value: left?.value > right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.LessThanEqualsToken)
+      return { value: left?.assignmentFunc!(left.value < right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.GreaterThanEqualsToken)
+      return { value: left?.assignmentFunc!(left.value > right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.EqualsEqualsToken)
+      return { value: left?.value == right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.ExclamationEqualsToken)
+      return { value: left?.value != right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.EqualsEqualsEqualsToken)
       return { value: left?.value === right?.value, assignmentFunc: undefined };
-    } else if (syntax.children![1].kind === SyntaxKind.ExclamationEqualsEqualsToken) {
+    else if (syntax.children![1].kind === SyntaxKind.ExclamationEqualsEqualsToken)
       return { value: left?.value !== right?.value, assignmentFunc: undefined };
-    } else if (syntax.children![1].kind === SyntaxKind.AmpersandAmpersandToken) {
+    else if (syntax.children![1].kind === SyntaxKind.PlusToken)
+      return { value: left?.value + right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.MinusToken)
+      return { value: left?.value - right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.AsteriskToken)
+      return { value: left?.value * right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.AsteriskAsteriskToken)
+      return { value: left?.value ** right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.SlashToken)
+      return { value: left?.value / right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.PercentToken)
+      return { value: left?.value % right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.LessThanLessThanToken)
+      return { value: left?.value << right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.GreaterThanGreaterThanToken)
+      return { value: left?.value >> right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.GreaterThanGreaterThanGreaterThanToken)
+      return { value: left?.value >>> right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.AmpersandToken)
+      return { value: left?.value & right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.BarToken)
+      return { value: left?.value | right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.CaretToken)
+      return { value: left?.value ^ right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.AmpersandAmpersandToken)
       return { value: left?.value && right?.value, assignmentFunc: undefined };
-    } else if (syntax.children![1].kind === SyntaxKind.FirstAssignment) {
-      return { value: left?.assignmentFunc(right?.value), assignmentFunc: undefined };
-    } else if (syntax.children![1].kind === SyntaxKind.FirstCompoundAssignment) {
-      return { value: left?.assignmentFunc(left.value + right?.value), assignmentFunc: undefined };
-    }
+    else if (syntax.children![1].kind === SyntaxKind.BarBarToken)
+      return { value: left?.value || right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.QuestionQuestionToken)
+      return { value: left?.value ?? right?.value, assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.FirstAssignment)
+      return { value: left?.assignmentFunc!(right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.FirstCompoundAssignment)
+      return { value: left?.assignmentFunc!(left.value + right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.MinusEqualsToken)
+      return { value: left?.assignmentFunc!(left.value - right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.AsteriskEqualsToken)
+      return { value: left?.assignmentFunc!(left.value * right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.AsteriskAsteriskEqualsToken)
+      return { value: left?.assignmentFunc!(left.value ** right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.SlashEqualsToken)
+      return { value: left?.assignmentFunc!(left.value / right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.PercentEqualsToken)
+      return { value: left?.assignmentFunc!(left.value % right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.LessThanLessThanEqualsToken)
+      return { value: left?.assignmentFunc!(left.value << right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.GreaterThanGreaterThanEqualsToken)
+      return { value: left?.assignmentFunc!(left.value >> right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken)
+      return { value: left?.assignmentFunc!(left.value >>> right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.AmpersandEqualsToken)
+      return { value: left?.assignmentFunc!(left.value & right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.BarEqualsToken)
+      return { value: left?.assignmentFunc!(left.value | right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.BarBarEqualsToken)
+      return { value: left?.assignmentFunc!(left.value || right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.AmpersandAmpersandEqualsToken)
+      return { value: left?.assignmentFunc!(left.value && right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.QuestionQuestionEqualsToken)
+      return { value: left?.assignmentFunc!(left.value ?? right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.LastBinaryOperator)
+      return { value: left?.assignmentFunc!(left.value ^ right?.value), assignmentFunc: undefined };
+    else
+      throw new Error(SyntaxKind[syntax.children![1].kind]);
   } else if (syntax.kind === SyntaxKind.ArrowFunction) {
-    const syntaxList = syntax.children![3 < syntax.children!.length ? 1 : 0] as TSMorphSyntaxListType;
-
-    const parameters = [];
-    for (let n = 0; n < syntaxList.children.length; n += 2) {
-      parameters.push(syntaxList.children[n].children![0].text || "");
-    }
-
     return {
-      value: getFunc(syntax.children![3 < syntax.children!.length ? 4 : 2] as TSMorphOtherNodeType, parameters, cloneScope(variables)), assignmentFunc: undefined
+      value: getFunc(
+        syntax.children![3 < syntax.children!.length ? 4 : 2] as TSMorphOtherNodeType,
+        syntax.children![3 < syntax.children!.length ? 1 : 0] as TSMorphSyntaxListType,
+        cloneScope(variables)
+      ), assignmentFunc: undefined
     };
+  } else if (syntax.kind === SyntaxKind.ConditionalExpression) {
+    return evalExpression(syntax.children![0] as TSMorphOtherNodeType, variables)?.value
+      ? evalExpression(syntax.children![2] as TSMorphOtherNodeType, variables)
+      : evalExpression(syntax.children![4] as TSMorphOtherNodeType, variables);
   } else if (syntax.kind === SyntaxKind.AsExpression) {
+    return evalExpression(syntax.children![0] as TSMorphOtherNodeType, variables);
+  } else if (syntax.kind === SyntaxKind.NonNullExpression) {
     return evalExpression(syntax.children![0] as TSMorphOtherNodeType, variables);
   } else
     throw new Error(SyntaxKind[syntax.kind]);
@@ -469,11 +619,15 @@ function evalBlockOrSyntax(node: TSMorphOtherNodeType, variables: { [key: string
     return evalSyntax(node, variables);
 }
 
-function getFunc(blockOrSyntax: TSMorphOtherNodeType, parameters: string[], variables: { [key: string]: any }[]) {
+function getFunc(blockOrSyntax: TSMorphOtherNodeType, parametersSyntaxList: TSMorphSyntaxListType, variables: { [key: string]: any }[]) {
   return (...args: any) => {
     variables.push({});
-    for (let n = 0; n < args.length && n < parameters.length; n++) {
-      variables[variables.length - 1][parameters[n]] = args[n];
+    for (let n = 0; n < args.length && n < parametersSyntaxList.children.length; n++) {
+      const parameter = parametersSyntaxList.children[n * 2] as TSMorphOtherNodeType;
+      if (parameter.children![0].kind === SyntaxKind.Identifier)
+        variables[variables.length - 1][parameter.children![0].text!] = args[n];
+      else if (parameter.children![0].kind === SyntaxKind.ObjectBindingPattern)
+        evalObjectBindingPattern(parameter.children![0] as TSMorphOtherNodeType, variables, args[n]);
     }
 
     const res = evalBlockOrSyntax(blockOrSyntax, variables)?.value;
@@ -481,6 +635,23 @@ function getFunc(blockOrSyntax: TSMorphOtherNodeType, parameters: string[], vari
     variables.pop();
     return res;
   };
+}
+
+function evalObjectBindingPattern(objectBindingPattern: TSMorphOtherNodeType, variables: { [key: string]: any }[], object: any) {
+  const syntaxList = objectBindingPattern.children![1] as TSMorphSyntaxListType;
+  for (let o = 0; o < syntaxList.children.length; o += 2) {
+    const bindingElement = syntaxList.children![o] as TSMorphOtherNodeType;
+    if (2 < bindingElement.children!.length) {
+      const identifier = bindingElement.children![0] as TSMorphOtherNodeType;
+      if (bindingElement.children![2].kind === SyntaxKind.Identifier)
+        variables[variables.length - 1][bindingElement.children![2].text!] = object[identifier.text!];
+      else if (bindingElement.children![2].kind === SyntaxKind.ObjectBindingPattern)
+        evalObjectBindingPattern(bindingElement.children![2] as TSMorphOtherNodeType, variables, object[identifier.text!]);
+    } else {
+      const identifier = bindingElement.children![0] as TSMorphOtherNodeType;
+      variables[variables.length - 1][identifier.text!] = object[identifier.text!];
+    }
+  }
 }
 
 export function addChildCodeTextForLog(nodeJson: TSMorphNodeType, text = "") {

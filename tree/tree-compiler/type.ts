@@ -1,4 +1,4 @@
-import { getNodeByBreadcrumbFunc, TreeNodeType } from "../lib/type";
+import { EditorType, getNodeByBreadcrumbFunc, TreeNodeType } from "../lib/type";
 
 export type TreeCompilerType = {
   decompile: (tree: TreeNodeType) => TreeNodeType;
@@ -6,9 +6,18 @@ export type TreeCompilerType = {
   getNodeByBreadcrumbFuncMap: { [key: string]: getNodeByBreadcrumbFunc };
 };
 
-export type AddonType = {
+export type AddonJsonType = {
   compilerCode: string;
   editorCode: string;
+  name?: string;
+  description?: string;
+  author?: string;
+  website?: string;
+};
+
+export type AddonType = {
+  compiler: TreeCompilerType;
+  editor: EditorType;
   name?: string;
   description?: string;
   author?: string;

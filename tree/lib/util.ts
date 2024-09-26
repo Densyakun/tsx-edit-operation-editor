@@ -1,14 +1,10 @@
 import tsMorphCompiler from "../code-compiler/ts-morph/compiler";
-import tsMorphEditor from "../code-compiler/ts-morph/editor";
-import myAppCompiler from "../tree-compiler/tsx-edit-operation-editor/compiler";
-import myAppEditor from "../tree-compiler/tsx-edit-operation-editor/editor";
-import { getNodeByBreadcrumbFunc, TreeNodeType } from "./type";
+import { TreeCompilerType } from "../tree-compiler/type";
+import { EditorType, getNodeByBreadcrumbFunc, TreeNodeType } from "./type";
 
-const compilers = [tsMorphCompiler, myAppCompiler];
-
-export function getNodeByBreadcrumb(node: TreeNodeType, breadcrumbPath: string) {
+export function getNodeByBreadcrumb(node: TreeNodeType, breadcrumbPath: string, treeCompilers: TreeCompilerType[]) {
   let getNodeByBreadcrumbFunc: getNodeByBreadcrumbFunc | undefined = undefined;
-  for (const compiler of compilers) {
+  for (const compiler of [tsMorphCompiler, ...treeCompilers]) {
     getNodeByBreadcrumbFunc = compiler.getNodeByBreadcrumbFuncMap[node.type] as getNodeByBreadcrumbFunc | undefined;
 
     if (getNodeByBreadcrumbFunc)
@@ -18,9 +14,9 @@ export function getNodeByBreadcrumb(node: TreeNodeType, breadcrumbPath: string) 
   return node;
 }
 
-export function getNodeByBreadcrumbs(node: TreeNodeType, breadcrumbPaths: string[]) {
+export function getNodeByBreadcrumbs(node: TreeNodeType, breadcrumbPaths: string[], treeCompilers: TreeCompilerType[]) {
   for (const breadcrumbPath of breadcrumbPaths) {
-    const node_ = getNodeByBreadcrumb(node, breadcrumbPath);
+    const node_ = getNodeByBreadcrumb(node, breadcrumbPath, treeCompilers);
     if (!node_) return;
     node = node_;
   }
@@ -28,9 +24,7 @@ export function getNodeByBreadcrumbs(node: TreeNodeType, breadcrumbPaths: string
   return node;
 }
 
-const editors = [tsMorphEditor, myAppEditor];
-
-export function getNodeEditor(node: TreeNodeType) {
+export function getNodeEditor(node: TreeNodeType, editors: EditorType[]) {
   for (const editor of editors) {
     const nodeEditorFunc = editor.getNodeEditorFuncMap[node.type];
 

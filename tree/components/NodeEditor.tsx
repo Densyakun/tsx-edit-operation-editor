@@ -3,16 +3,15 @@ import treeState from "../lib/state";
 import { Accordion, AccordionDetails, AccordionSummary, Alert, AlertTitle, Breadcrumbs, IconButton, Link, List, Skeleton, Stack, Typography } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { getNodeEditor } from "../lib/util";
 import { TSMorphProjectType } from "../code-compiler/ts-morph/compiler";
-//import treeCompiler from "../tree-compiler/tsx-edit-operation-editor/compiler";
 import ItemList from "./ItemList";
 import CopyToClipboardButton from "./CopyToClipboardButton";
-import { TreeNodeType } from "../lib/type";
-import { decompileUseText } from "../tree-compiler/util";
-import { AddonType } from "../tree-compiler/type";
+import { EditorType, TreeNodeType } from "../lib/type";
+import { getAddonByJson } from "../tree-compiler/util";
+import { AddonJsonType, AddonType } from "../tree-compiler/type";
 import useSWR from "swr";
 import { useEffect, useState } from "react";
+import { getNodeEditor } from "../lib/util";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -26,9 +25,9 @@ const fetcher = async (url: string) => {
 };
 
 function LoadedNodeEditor() {
-  const { navigatedNode, breadcrumbs, breadcrumbPaths } = useSnapshot(treeState);
+  const { navigatedNode, breadcrumbs, breadcrumbPaths, editors } = useSnapshot(treeState);
 
-  const nodeEditor = navigatedNode && getNodeEditor(navigatedNode);
+  const nodeEditor = navigatedNode && getNodeEditor(navigatedNode, editors as EditorType[]);
 
   return <Stack spacing={1}>
     {0 < breadcrumbs.length && <Stack spacing={1} direction="row" alignItems="center">
@@ -104,27 +103,30 @@ function NodeEditorError({ error }: { error: Error | string }) {
 }
 
 export default function NodeEditor() {
-  const { dirPath } = useSnapshot(treeState);
+  const { dirPath, treeCompilers } = useSnapshot(treeState);
 
-  const { data: addons, error, isLoading } = useSWR<AddonType[]>(`/api/addons`, fetcher);
+  const { data: addonsJson, error, isLoading } = useSWR<AddonJsonType[]>(`/api/addons`, fetcher);
 
   const { data: sourceFilesNode, error: error1, isLoading: isLoading1 } = useSWR<TSMorphProjectType>(dirPath ? `/api/tree/dir?dirPath=${dirPath}` : null, fetcher);
 
   const [treeCompileError, setTreeCompileError] = useState<Error | string>();
 
   useEffect(() => {
+    if (!addonsJson) return;
+
+    treeState.addons = addonsJson.map(addonJson => getAddonByJson(addonJson)).filter(addon => addon) as AddonType[];
+  }, [addonsJson]);
+
+  useEffect(() => {
     setTreeCompileError(undefined);
 
-    if (!addons || !sourceFilesNode) return;
+    if (!treeCompilers || !sourceFilesNode) return;
 
     let nodeTree: TreeNodeType = JSON.parse(JSON.stringify(sourceFilesNode));
-    /*[
-      treeCompiler,
-    ].forEach(compiler => nodeTree = compiler.decompile(nodeTree));*/
 
-    for (const addon of addons) {
+    for (const compiler of treeCompilers) {
       try {
-        nodeTree = decompileUseText(nodeTree, addon.compilerCode);
+        nodeTree = compiler.decompile(nodeTree);
       } catch (err) {
         if (err instanceof Error) {
           setTreeCompileError(err);
@@ -135,7 +137,7 @@ export default function NodeEditor() {
     }
 
     treeState.nodeTree = nodeTree;
-  }, [addons, sourceFilesNode]);
+  }, [treeCompilers, sourceFilesNode]);
 
   if (error || error1) return <NodeEditorError error={error || error1} />;
   if (isLoading || isLoading1) return <Skeleton variant="rectangular" sx={{ maxWidth: 360 }} />;

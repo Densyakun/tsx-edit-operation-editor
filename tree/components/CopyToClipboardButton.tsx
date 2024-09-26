@@ -14,7 +14,7 @@ export default function CopyToClipboardButton({ breadcrumbPaths }: { breadcrumbP
   const handleClick = () => {
     if (!treeState.nodeTree) return;
 
-    navigator.clipboard.writeText(JSON.stringify(getNodeByBreadcrumbs(treeState.nodeTree, breadcrumbPaths)));
+    navigator.clipboard.writeText(JSON.stringify(getNodeByBreadcrumbs(treeState.nodeTree, breadcrumbPaths, treeState.treeCompilers)));
 
     setOpen(true);
   };

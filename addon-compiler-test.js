@@ -8,4 +8,4 @@ const a = [{
   author: "Densyakun",
 }];
 
-writeFileSync('./addon.json', JSON.stringify(a));
+writeFileSync('./addon.json', JSON.stringify(a, undefined, "  "));

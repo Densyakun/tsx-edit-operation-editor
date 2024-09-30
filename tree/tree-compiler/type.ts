@@ -1,3 +1,4 @@
+import { TSMorphSyntaxListType } from "../code-compiler/ts-morph/compiler";
 import { EditorType, getNodeByBreadcrumbFunc, TreeNodeType } from "../lib/type";
 
 export type TreeCompilerType = {
@@ -9,17 +10,19 @@ export type TreeCompilerType = {
 export type AddonJsonType = {
   compilerCode: string;
   editorCode: string;
-  name?: string;
-  description?: string;
-  author?: string;
-  website?: string;
+  name: string;
+  description: string;
+  author: string;
+  website: string;
 };
 
 export type AddonType = {
-  compiler: TreeCompilerType;
-  editor: EditorType;
-  name?: string;
-  description?: string;
-  author?: string;
-  website?: string;
+  compilerSyntaxList: TSMorphSyntaxListType;
+  editorSyntaxList: TSMorphSyntaxListType;
+  compiler?: TreeCompilerType;
+  editor?: EditorType;
+  name: string;
+  description: string;
+  author: string;
+  website: string;
 };

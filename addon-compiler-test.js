@@ -6,6 +6,7 @@ const a = [{
   name: "Next.js test",
   description: "Tree Compiler for Next.js",
   author: "Densyakun",
+  website: "",
 }];
 
 writeFileSync('./addon.json', JSON.stringify(a, undefined, "  "));

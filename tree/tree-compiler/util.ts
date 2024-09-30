@@ -41,11 +41,13 @@ export function getAddonByJson(json: AddonJsonType): AddonType | undefined {
 
   const compilerSourceFile = project.createSourceFile("compiler.ts", json.compilerCode);
 
+  const compilerSyntaxList = getFromSyntaxList(compilerSourceFile.getChildren()[0] as SyntaxList);
+
   let compilerExports: ModuleType | undefined;
 
   try {
     compilerExports = evalSyntaxList(
-      getFromSyntaxList(compilerSourceFile.getChildren()[0] as SyntaxList),
+      compilerSyntaxList,
       getNewVariables(),
       {
         "path": {
@@ -74,15 +76,16 @@ export function getAddonByJson(json: AddonJsonType): AddonType | undefined {
   }
 
   const compiler = compilerExports?.default;
-  if (!compiler || !compiler.decompile || !compiler.compile || !compiler.getNodeByBreadcrumbFuncMap) return;
 
   const editorSourceFile = project.createSourceFile("editor.ts", json.editorCode);
+
+  const editorSyntaxList = getFromSyntaxList(editorSourceFile.getChildren()[0] as SyntaxList);
 
   let editorExports: ModuleType | undefined;
 
   try {
     editorExports = evalSyntaxList(
-      getFromSyntaxList(editorSourceFile.getChildren()[0] as SyntaxList),
+      editorSyntaxList,
       getNewVariables(),
       {
         "./compiler": {
@@ -104,11 +107,12 @@ export function getAddonByJson(json: AddonJsonType): AddonType | undefined {
   }
 
   const editor = editorExports?.default;
-  if (!editor || !editor.getNodeEditorFuncMap) return;
 
   return {
-    compiler,
-    editor,
+    compilerSyntaxList,
+    editorSyntaxList,
+    compiler: compiler && compiler.decompile && compiler.compile && compiler.getNodeByBreadcrumbFuncMap ? compiler : undefined,
+    editor: editor && editor.getNodeEditorFuncMap ? editor : undefined,
     name: json.name,
     description: json.description,
     author: json.author,

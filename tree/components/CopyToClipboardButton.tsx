@@ -3,8 +3,9 @@ import treeState from "../lib/state";
 import { ClickAwayListener, IconButton, Tooltip } from "@mui/material";
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { getNodeByBreadcrumbs } from "../lib/util";
+import { NodeTreeEditorStateType } from "../lib/createNodeTreeEditorState";
 
-export default function CopyToClipboardButton({ breadcrumbPaths }: { breadcrumbPaths: string[] }) {
+export default function CopyToClipboardButton({ nodeTreeEditorState, breadcrumbPaths }: { nodeTreeEditorState: NodeTreeEditorStateType, breadcrumbPaths: string[] }) {
   const [open, setOpen] = useState(false);
 
   const handleTooltipClose = () => {
@@ -12,9 +13,9 @@ export default function CopyToClipboardButton({ breadcrumbPaths }: { breadcrumbP
   };
 
   const handleClick = () => {
-    if (!treeState.nodeTree) return;
+    if (!nodeTreeEditorState.nodeTree) return;
 
-    navigator.clipboard.writeText(JSON.stringify(getNodeByBreadcrumbs(treeState.nodeTree, breadcrumbPaths, treeState.treeCompilers)));
+    navigator.clipboard.writeText(JSON.stringify(getNodeByBreadcrumbs(nodeTreeEditorState.nodeTree, breadcrumbPaths, treeState.treeCompilers)));
 
     setOpen(true);
   };

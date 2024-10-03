@@ -109,6 +109,7 @@ export function getAddonByJson(json: AddonJsonType): AddonType | undefined {
   const editor = editorExports?.default;
 
   return {
+    enabled: json.enabled,
     compilerSyntaxList,
     editorSyntaxList,
     compiler: compiler && compiler.decompile && compiler.compile && compiler.getNodeByBreadcrumbFuncMap ? compiler : undefined,

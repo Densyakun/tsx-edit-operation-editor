@@ -1,5 +1,5 @@
-import { Box, Button, List, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
-import treeState from "../lib/state";
+import { Box, Button, List, ListItem, ListItemButton, ListItemText, Stack, Switch, Typography } from "@mui/material";
+import treeState, { saveAddonsJsonToServer, updateEditor } from "../lib/state";
 import { useSnapshot } from "valtio";
 import { AddonJsonType } from "../tree-compiler/type";
 import { useState } from "react";
@@ -68,11 +68,21 @@ export default function Addons() {
                 <ListItemButton onClick={() => treeState.navigatedAddonIndex = index}>
                   <ListItemText primary={`(${index + 1}) ` + (addonJson.name || "")} />
                 </ListItemButton>
+                <Switch
+                  edge="end"
+                  onChange={e => {
+                    treeState.addons[index].enabled = treeState.addonsJson[index].enabled = e.target.checked;
+                    updateEditor();
+                    saveAddonsJsonToServer();
+                  }}
+                  checked={addonJson.enabled}
+                />
               </ListItem>
             )}
             <ListItem disablePadding sx={{ border: 1 }}>
               <ListItemButton onClick={() => {
                 treeState.addonsJson = [...treeState.addonsJson, {
+                  enabled: true,
                   compilerCode: "",
                   editorCode: "",
                   name: "",
@@ -81,10 +91,7 @@ export default function Addons() {
                   website: "",
                 }];
 
-                fetch('/api/addons', {
-                  method: 'POST',
-                  body: JSON.stringify(treeState.addonsJson),
-                });
+                saveAddonsJsonToServer();
               }}>
                 <ListItemText primary="Add" />
               </ListItemButton>

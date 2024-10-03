@@ -8,6 +8,7 @@ export type TreeCompilerType = {
 };
 
 export type AddonJsonType = {
+  enabled: boolean;
   compilerCode: string;
   editorCode: string;
   name: string;
@@ -17,6 +18,7 @@ export type AddonJsonType = {
 };
 
 export type AddonType = {
+  enabled: boolean;
   compilerSyntaxList: TSMorphSyntaxListType;
   editorSyntaxList: TSMorphSyntaxListType;
   compiler?: TreeCompilerType;

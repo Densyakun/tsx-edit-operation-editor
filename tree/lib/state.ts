@@ -27,14 +27,21 @@ function updateAddons() {
 
 subscribeKey(treeState, 'addonsJson', updateAddons);
 
-function updateEditor() {
+export function saveAddonsJsonToServer() {
+  fetch('/api/addons', {
+    method: 'POST',
+    body: JSON.stringify(treeState.addonsJson),
+  });
+}
+
+export function updateEditor() {
   treeState.treeCompilers = treeState.addons
-    .filter(({ compiler }) => compiler)
+    .filter(addon => addon.enabled && addon.compiler)
     .map(addon => addon.compiler as TreeCompilerType);
   treeState.editors = [
     tsMorphEditor,
     ...treeState.addons
-      .filter(({ editor }) => editor)
+      .filter(addon => addon.enabled && addon.editor)
       .map(addon => addon.editor as EditorType)
   ];
 }

@@ -32,7 +32,7 @@ function decompile(tree: TreeNodeType): TreeNodeType {
 
     if (nextEnvIndex === -1) return tree;
 
-    const sourceFilesWithoutNextEnv = [...sourceFiles.splice(0, nextEnvIndex), ...sourceFiles.splice(1)];
+    const sourceFilesWithoutNextEnv = [...sourceFiles.toSpliced(nextEnvIndex, 1)];
 
     const otherSourceFiles: TSMorphSourceFileType[] = [];
 

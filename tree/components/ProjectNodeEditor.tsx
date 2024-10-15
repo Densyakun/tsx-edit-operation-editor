@@ -22,10 +22,6 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-function LoadedProjectNodeEditor() {
-  return <NodeEditor nodeTreeEditorState={projectNodeTreeEditorState} />;
-}
-
 function NodeEditorError({ error }: { error: Error | string }) {
   return (error as Error).name
     ? <Alert variant="filled" severity="error">
@@ -62,7 +58,7 @@ export default function ProjectNodeEditor() {
 
     if (!treeCompilers || !sourceFilesNode) return;
 
-    let nodeTree: TreeNodeType = JSON.parse(JSON.stringify(sourceFilesNode));
+    let nodeTree: TreeNodeType = sourceFilesNode;
 
     for (const compiler of treeCompilers) {
       try {
@@ -84,5 +80,5 @@ export default function ProjectNodeEditor() {
 
   if (treeCompileError) return <NodeEditorError error={treeCompileError} />;
 
-  return <LoadedProjectNodeEditor />;
+  return <NodeEditor nodeTreeEditorState={projectNodeTreeEditorState} />;
 }

@@ -1,10 +1,10 @@
 import { useSnapshot } from "valtio";
 import treeState from "../lib/state";
-import { getNodeEditor } from "../lib/util";
+import { getNodeEditor, putNodeByBreadcrumbs } from "../lib/util";
 import { EditorType } from "../lib/type";
-import { Breadcrumbs, IconButton, Link, List, Stack, Typography } from "@mui/material";
+import { Breadcrumbs, IconButton, Link, List, Stack, TextField, Typography } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
-import { NodeTreeEditorStateType } from "../lib/createNodeTreeEditorState";
+import type { NodeTreeEditorStateType } from "../lib/createNodeTreeEditorState";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 import ItemList from "./ItemList";
 
@@ -12,7 +12,10 @@ export default function NodeEditor({ nodeTreeEditorState }: { nodeTreeEditorStat
   const { navigatedNode, breadcrumbs, breadcrumbPaths } = useSnapshot(nodeTreeEditorState);
   const { editors } = useSnapshot(treeState);
 
-  const nodeEditor = navigatedNode && getNodeEditor(navigatedNode, editors as EditorType[]);
+  const nodeEditor = navigatedNode && getNodeEditor(navigatedNode, editors as EditorType[], node => {
+    if (!nodeTreeEditorState.nodeTree) return;
+    putNodeByBreadcrumbs(nodeTreeEditorState.nodeTree, breadcrumbPaths, treeState.treeCompilers, node);
+  });
 
   return <Stack spacing={1}>
     {0 < breadcrumbs.length && <Stack spacing={1} direction="row" alignItems="center">
@@ -59,6 +62,13 @@ export default function NodeEditor({ nodeTreeEditorState }: { nodeTreeEditorStat
         </>
         : null
       }
+      {nodeEditor.editorui && <TextField
+        label={nodeEditor.editorui.label}
+        value={nodeEditor.editorui.getter()}
+        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+          nodeEditor.editorui?.setter(event.target.value);
+        }}
+      />}
     </>}
   </Stack>;
 }

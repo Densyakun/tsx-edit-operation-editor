@@ -24,9 +24,13 @@ export default function createNodeTreeEditorState() {
     nodeTreeEditorState.navigatedNode = getNodeByBreadcrumbs(nodeTreeEditorState.nodeTree, nodeTreeEditorState.breadcrumbPaths, treeState.treeCompilers);
   }
 
-  subscribeKey(nodeTreeEditorState, 'nodeTree', updateNavigatedNode);
-  subscribe(nodeTreeEditorState.breadcrumbs, updateNavigatedNode);
   subscribeKey(treeState, 'treeCompilers', updateNavigatedNode);
+
+  subscribe(nodeTreeEditorState, ops => {
+    ops.forEach(op => {
+      if (op[1][0] === 'nodeTree' || op[1][0] === 'breadcrumbs') updateNavigatedNode();
+    });
+  });
 
   return nodeTreeEditorState;
 }

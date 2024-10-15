@@ -52,9 +52,12 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
       topItemListKeys: ["Unresolved pages"],
     };
   },
-  [NextJSUnresolvedPageTypeId]: node => ({
+  [NextJSUnresolvedPageTypeId]: (node, setter) => ({
     title: "Unresolved page",
-    itemLists: tsMorphEditor.getNodeEditorFuncMap[SourceFileTypeId]((node as NextJSUnresolvedPageType).sourceFile).itemLists,
+    itemLists: tsMorphEditor.getNodeEditorFuncMap[SourceFileTypeId]((node as NextJSUnresolvedPageType).sourceFile, sourceFile => setter({
+      ...node,
+      sourceFile,
+    } as NextJSUnresolvedPageType)).itemLists,
     dataTexts: [
       `Route: ${(node as NextJSUnresolvedPageType).route}`,
     ],

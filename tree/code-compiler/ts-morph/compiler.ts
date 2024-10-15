@@ -1,4 +1,4 @@
-import { getNodeByBreadcrumbFunc, TreeNodeType } from '@/tree/lib/type';
+import { deleteNodeByBreadcrumbFunc, getNodeByBreadcrumbFunc, postNodeByBreadcrumbFunc, putNodeByBreadcrumbFunc, TreeNodeType } from '@/tree/lib/type';
 import path from 'path';
 import { Node, Project, SourceFile, SyntaxKind, SyntaxList } from 'ts-morph';
 import { CodeCompilerType } from '../type';
@@ -169,4 +169,70 @@ const getNodeByBreadcrumbFuncMap: { [key: string]: getNodeByBreadcrumbFunc } = {
   },
 };
 
-export default { getNodeByBreadcrumbFuncMap } as CodeCompilerType;
+const postNodeByBreadcrumbFuncMap: { [key: string]: postNodeByBreadcrumbFunc } = {
+  [TSMorphProjectTypeId]: (node, newChildNode) => {
+    (node as TSMorphProjectType).sourceFiles.push(newChildNode as TSMorphSourceFileType);
+    return (newChildNode as TSMorphSourceFileType).filePath;
+  },
+  [SourceFileTypeId]: (node, newChildNode, index = (node as TSMorphSourceFileType).syntaxList.children.length) => {
+    (node as TSMorphSourceFileType).syntaxList.children.splice(index, 0, newChildNode as TSMorphNodeType);
+    return index.toString();
+  },
+  [SyntaxListTypeId]: (node, newChildNode, index = (node as TSMorphSyntaxListType).children.length) => {
+    (node as TSMorphSyntaxListType).children.splice(index, 0, newChildNode as TSMorphNodeType);
+    return index.toString();
+  },
+  [OtherNodeTypeId]: (node, newChildNode, index = (node as TSMorphOtherNodeType).children?.length || 0) => {
+    (node as TSMorphOtherNodeType).children?.splice(index, 0, newChildNode as TSMorphNodeType);
+    return index.toString();
+  },
+};
+
+const putNodeByBreadcrumbFuncMap: { [key: string]: putNodeByBreadcrumbFunc } = {
+  [TSMorphProjectTypeId]: (node, breadcrumb, newChildNode) => {
+    const sourceFiles = (node as TSMorphProjectType).sourceFiles;
+    for (let index = 0; index < sourceFiles.length; index++) {
+      const { filePath } = sourceFiles[index];
+      if (filePath === breadcrumb)
+        return sourceFiles.splice(index, 1, newChildNode as TSMorphSourceFileType)[0];
+    }
+    return undefined;
+  },
+  [SourceFileTypeId]: (node, breadcrumb, newChildNode) => {
+    const sourceFile = node as TSMorphSourceFileType;
+    return sourceFile.syntaxList.children.splice(parseInt(breadcrumb), 1, newChildNode as TSMorphNodeType)[0];
+  },
+  [SyntaxListTypeId]: (node, breadcrumb, newChildNode) => {
+    const syntaxList = node as TSMorphSyntaxListType;
+    return syntaxList.children.splice(parseInt(breadcrumb), 1, newChildNode as TSMorphNodeType)[0];
+  },
+  [OtherNodeTypeId]: (node, breadcrumb, newChildNode) => {
+    const otherNode = node as TSMorphOtherNodeType;
+    return otherNode.children ? otherNode.children.splice(parseInt(breadcrumb), 1, newChildNode as TSMorphNodeType)[0] : undefined;
+  },
+};
+
+const deleteNodeByBreadcrumbFuncMap: { [key: string]: deleteNodeByBreadcrumbFunc } = {
+  [TSMorphProjectTypeId]: (node, breadcrumb) => {
+    const sourceFiles = (node as TSMorphProjectType).sourceFiles;
+    for (let index = 0; index < sourceFiles.length; index++) {
+      const { filePath } = sourceFiles[index];
+      if (filePath === breadcrumb)
+        return sourceFiles.splice(index, 1)[0];
+    }
+  },
+  [SourceFileTypeId]: (node, breadcrumb) => {
+    const sourceFile = node as TSMorphSourceFileType;
+    return sourceFile.syntaxList.children.splice(parseInt(breadcrumb), 1)[0];
+  },
+  [SyntaxListTypeId]: (node, breadcrumb) => {
+    const syntaxList = node as TSMorphSyntaxListType;
+    return syntaxList.children.splice(parseInt(breadcrumb), 1)[0];
+  },
+  [OtherNodeTypeId]: (node, breadcrumb) => {
+    const otherNode = node as TSMorphOtherNodeType;
+    return otherNode.children ? otherNode.children.splice(parseInt(breadcrumb), 1)[0] : undefined;
+  },
+};
+
+export default { getNodeByBreadcrumbFuncMap, postNodeByBreadcrumbFuncMap, putNodeByBreadcrumbFuncMap, deleteNodeByBreadcrumbFuncMap } as CodeCompilerType;

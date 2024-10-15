@@ -1,4 +1,4 @@
-import { EditorType, getNodeEditorFunc, TreeNodeListItemType } from "@/tree/lib/type";
+import { EditorType, EditorUIType, getNodeEditorFunc, TreeNodeListItemType } from "@/tree/lib/type";
 import { SyntaxKind } from "ts-morph";
 import { OtherNodeTypeId, TSMorphProjectTypeId, SourceFileTypeId, SyntaxListTypeId, TSMorphNodeType, TSMorphOtherNodeType, TSMorphProjectType, TSMorphSourceFileType, TSMorphSyntaxListType } from "./compiler";
 
@@ -52,20 +52,35 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
       : []
     ,
   }),
-  [OtherNodeTypeId]: node => ({
-    title: "ts-morph Node",
-    itemLists: {
-      "Children": nodeChildrenItemList(node as TSMorphOtherNodeType),
-    },
-    dataTexts: (node as TSMorphNodeType).text
-      ? [
-        `Leading comment ranges: ${JSON.stringify((node as TSMorphNodeType).leadingCommentRanges)}`,
-        `Text: ${JSON.stringify((node as TSMorphNodeType).text)}`,
-        `Trailing comment ranges: ${JSON.stringify((node as TSMorphNodeType).trailingCommentRanges)}`,
-      ]
-      : []
-    ,
-  }),
+  [OtherNodeTypeId]: (node, setter) => {
+    const editorui: EditorUIType | undefined = (node as TSMorphNodeType).kind === SyntaxKind.StringLiteral
+      ? {
+        label: "Value",
+        getter: () => (node as TSMorphNodeType).text!.substring(1, (node as TSMorphNodeType).text!.length - 1),
+        setter: (value: string) => {
+          const newNode = { ...node } as TSMorphNodeType;
+          newNode.text = `"${value}"`;
+          setter(newNode);
+        },
+      }
+      : undefined;
+
+    return {
+      title: "ts-morph Node",
+      itemLists: {
+        "Children": nodeChildrenItemList(node as TSMorphOtherNodeType),
+      },
+      dataTexts: (node as TSMorphNodeType).text
+        ? [
+          `Leading comment ranges: ${JSON.stringify((node as TSMorphNodeType).leadingCommentRanges)}`,
+          `Text: ${JSON.stringify((node as TSMorphNodeType).text)}`,
+          `Trailing comment ranges: ${JSON.stringify((node as TSMorphNodeType).trailingCommentRanges)}`,
+        ]
+        : []
+      ,
+      editorui,
+    };
+  },
 };
 
 export default { getNodeEditorFuncMap } as EditorType;

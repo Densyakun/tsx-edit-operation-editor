@@ -116,6 +116,19 @@ function decompile(tree: TreeNodeType): TreeNodeType {
 }
 
 function compile(tree: TreeNodeType): TreeNodeType {
+  if (tree.type === NextJSTypeId) {
+    const sourceFiles: TSMorphSourceFileType[] = [
+      ...Object.values((tree as NextJSType).pages),
+      ...(tree as NextJSType).unresolvedPages.map(unresolvedPage => unresolvedPage.sourceFile),
+      ...(tree as NextJSType).otherSourceFiles,
+    ];
+
+    return {
+      type: TSMorphProjectTypeId,
+      sourceFiles,
+    } as TSMorphProjectType;
+  }
+
   return tree;
 }
 

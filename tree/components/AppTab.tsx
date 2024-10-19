@@ -1,8 +1,9 @@
-import { Box, Tab, Tabs } from "@mui/material";
+import { Box, Stack, Tab, Tabs } from "@mui/material";
 import { useState } from "react";
 import FilePathInput from "./FilePathInput";
 import ProjectNodeEditor from "./ProjectNodeEditor";
 import Addons from "./Addons";
+import SaveProjectButton from "./SaveProjectButton";
 
 export default function AppTab() {
   const [value, setValue] = useState(0);
@@ -21,7 +22,10 @@ export default function AppTab() {
     {
       value === 0
         ? <>
-          <FilePathInput />
+          <Stack direction="row" spacing={1}>
+            <FilePathInput />
+            <SaveProjectButton />
+          </Stack>
           <ProjectNodeEditor />
         </>
         : <Addons />

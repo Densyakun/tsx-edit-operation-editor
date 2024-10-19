@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import NodeEditor from "./NodeEditor";
 import createNodeTreeEditorState from "../lib/createNodeTreeEditorState";
 
-const projectNodeTreeEditorState = createNodeTreeEditorState();
+export const projectNodeTreeEditorState = createNodeTreeEditorState();
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -49,7 +49,7 @@ function NodeEditorError({ error }: { error: Error | string }) {
 export default function ProjectNodeEditor() {
   const { dirPath, treeCompilers } = useSnapshot(treeState);
 
-  const { data: sourceFilesNode, error, isLoading } = useSWR<TSMorphProjectType>(dirPath ? `/api/tree/dir?dirPath=${dirPath}` : null, fetcher);
+  const { data: sourceFilesNode, error, isLoading } = useSWR<TSMorphProjectType>(dirPath ? `/api/tree/dir?dirPath=${encodeURIComponent(dirPath)}` : null, fetcher);
 
   const [treeCompileError, setTreeCompileError] = useState<Error | string>();
 

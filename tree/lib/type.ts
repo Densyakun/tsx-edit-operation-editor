@@ -25,6 +25,7 @@ export type NodeEditorType = {
 
 export type EditorUIType = {
   label: string;
+  type: 'string' | 'number';
   getter: () => string;
   setter: (value: string) => void;
 };

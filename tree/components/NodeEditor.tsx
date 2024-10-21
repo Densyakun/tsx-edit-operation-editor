@@ -62,13 +62,30 @@ export default function NodeEditor({ nodeTreeEditorState }: { nodeTreeEditorStat
         </>
         : null
       }
-      {nodeEditor.editorui && <TextField
-        label={nodeEditor.editorui.label}
-        value={nodeEditor.editorui.getter()}
-        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-          nodeEditor.editorui?.setter(event.target.value);
-        }}
-      />}
+      {nodeEditor.editorui && (
+        nodeEditor.editorui.type === "string"
+          ? <TextField
+            label={nodeEditor.editorui.label}
+            value={nodeEditor.editorui.getter()}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              nodeEditor.editorui?.setter(event.target.value);
+            }}
+          />
+          : nodeEditor.editorui.type === "number"
+            ? <>
+              <TextField
+                label={nodeEditor.editorui.label}
+                value={nodeEditor.editorui.getter()}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  nodeEditor.editorui?.setter(event.target.value);
+                }}
+              />
+              <Typography gutterBottom>
+                {Number(nodeEditor.editorui.getter()).toString()}
+              </Typography>
+            </>
+            : null
+      )}
     </>}
   </Stack>;
 }

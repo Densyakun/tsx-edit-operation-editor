@@ -46,9 +46,12 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
     },
   }),
   [OtherNodeTypeId]: (node, setter) => {
-    const editorui: EditorUIType | undefined = (node as TSMorphOtherNodeType).kind === SyntaxKind.StringLiteral
-      ? {
+    let editorui: EditorUIType | undefined = undefined;
+
+    if ((node as TSMorphOtherNodeType).kind === SyntaxKind.StringLiteral)
+      editorui = {
         label: "Value",
+        type: "string",
         getter: () => (node as TSMorphOtherNodeType).text!.substring(1, (node as TSMorphOtherNodeType).text!.length - 1),
         setter: (value: string) => {
           const newNode = { ...node } as TSMorphOtherNodeType;
@@ -56,23 +59,32 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
           newNode.text = `"${value}"`;
           setter(newNode);
         },
-      }
-      : undefined;
+      };
+    else if ((node as TSMorphOtherNodeType).kind === SyntaxKind.FirstLiteralToken)
+      editorui = {
+        label: "Value",
+        type: "number",
+        getter: () => (node as TSMorphOtherNodeType).text!,
+        setter: (value: string) => {
+          const newNode = { ...node } as TSMorphOtherNodeType;
+          newNode.text = `${value}`;
+          setter(newNode);
+        },
+      };
 
     return {
       title: "ts-morph Node",
       itemLists: {
         "Children": nodeChildrenItemList(node as TSMorphOtherNodeType),
       },
-      dataTexts: (node as TSMorphOtherNodeType).text
-        ? [
+      dataTexts: (node as TSMorphOtherNodeType).children
+        ? []
+        : [
           `Leading comment ranges: ${JSON.stringify((node as TSMorphOtherNodeType).leadingCommentRanges)}`,
-          `Text: ${JSON.stringify((node as TSMorphOtherNodeType).text)}`,
+          `Text: ${(node as TSMorphOtherNodeType).text && JSON.stringify((node as TSMorphOtherNodeType).text)}`,
           `Trailing comment ranges: ${JSON.stringify((node as TSMorphOtherNodeType).trailingCommentRanges)}`,
           `Whitespaces: ${JSON.stringify((node as TSMorphOtherNodeType).whitespaces)}`,
-        ]
-        : []
-      ,
+        ],
       editorui,
     };
   },

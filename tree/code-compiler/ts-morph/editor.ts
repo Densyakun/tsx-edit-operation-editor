@@ -1,6 +1,6 @@
 import { EditorType, EditorUIType, getNodeEditorFunc, TreeNodeListItemType } from "@/tree/lib/type";
 import { SyntaxKind } from "ts-morph";
-import { OtherNodeTypeId, TSMorphProjectTypeId, SourceFileTypeId, SyntaxListTypeId, TSMorphNodeType, TSMorphOtherNodeType, TSMorphProjectType, TSMorphSourceFileType, TSMorphSyntaxListType } from "./compiler";
+import { OtherNodeTypeId, TSMorphProjectTypeId, SourceFileTypeId, SyntaxListTypeId, TSMorphOtherNodeType, TSMorphProjectType, TSMorphSourceFileType, TSMorphSyntaxListType } from "./compiler";
 
 const kindCount = 363;
 
@@ -8,7 +8,7 @@ function getKindHue(kind: number) {
   return kind * 360 / kindCount;
 }
 
-function nodeChildrenItemList(node: TSMorphNodeType): TreeNodeListItemType[] {
+function nodeChildrenItemList(node: TSMorphSyntaxListType | TSMorphOtherNodeType): TreeNodeListItemType[] {
   return node.children?.map((child, index) => {
     return {
       breadcrumb: { path: index.toString(), label: SyntaxKind[child.kind] },
@@ -46,12 +46,12 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
     },
   }),
   [OtherNodeTypeId]: (node, setter) => {
-    const editorui: EditorUIType | undefined = (node as TSMorphNodeType).kind === SyntaxKind.StringLiteral
+    const editorui: EditorUIType | undefined = (node as TSMorphOtherNodeType).kind === SyntaxKind.StringLiteral
       ? {
         label: "Value",
-        getter: () => (node as TSMorphNodeType).text!.substring(1, (node as TSMorphNodeType).text!.length - 1),
+        getter: () => (node as TSMorphOtherNodeType).text!.substring(1, (node as TSMorphOtherNodeType).text!.length - 1),
         setter: (value: string) => {
-          const newNode = { ...node } as TSMorphNodeType;
+          const newNode = { ...node } as TSMorphOtherNodeType;
           // TODO エスケープ文字
           newNode.text = `"${value}"`;
           setter(newNode);
@@ -64,12 +64,12 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
       itemLists: {
         "Children": nodeChildrenItemList(node as TSMorphOtherNodeType),
       },
-      dataTexts: (node as TSMorphNodeType).text
+      dataTexts: (node as TSMorphOtherNodeType).text
         ? [
-          `Leading comment ranges: ${JSON.stringify((node as TSMorphNodeType).leadingCommentRanges)}`,
-          `Text: ${JSON.stringify((node as TSMorphNodeType).text)}`,
-          `Trailing comment ranges: ${JSON.stringify((node as TSMorphNodeType).trailingCommentRanges)}`,
-          `Whitespaces: ${JSON.stringify((node as TSMorphNodeType).whitespaces)}`,
+          `Leading comment ranges: ${JSON.stringify((node as TSMorphOtherNodeType).leadingCommentRanges)}`,
+          `Text: ${JSON.stringify((node as TSMorphOtherNodeType).text)}`,
+          `Trailing comment ranges: ${JSON.stringify((node as TSMorphOtherNodeType).trailingCommentRanges)}`,
+          `Whitespaces: ${JSON.stringify((node as TSMorphOtherNodeType).whitespaces)}`,
         ]
         : []
       ,

@@ -1,6 +1,6 @@
 import { Project, SyntaxKind, SyntaxList } from "ts-morph";
 import treeCodeCompilerTSMorphCompiler, * as treeCodeCompilerTSMorphCompilerNamespace from "@/tree/code-compiler/ts-morph/compiler";
-import type { TSMorphNodeType, TSMorphOtherNodeType, TSMorphSyntaxListType } from "@/tree/code-compiler/ts-morph/compiler";
+import type { TSMorphOtherNodeType, TSMorphSyntaxListType } from "@/tree/code-compiler/ts-morph/compiler";
 import treeCodeCompilerTSMorphEditor, * as treeCodeCompilerTSMorphEditorNamespace from "@/tree/code-compiler/ts-morph/editor";
 import normalizePath from "normalize-path";
 import path from "path";
@@ -235,7 +235,7 @@ function evalSyntax(syntax: TSMorphOtherNodeType, variables: { [key: string]: an
     }
     if (importClause.children![n].kind === SyntaxKind.NamespaceImport) {
       const namespaceImport = importClause.children![n] as TSMorphOtherNodeType;
-      variables[0][namespaceImport.children![2].text!] = module.object;
+      variables[0][(namespaceImport.children![2] as TSMorphOtherNodeType).text!] = module.object;
     } else if (importClause.children![n].kind === SyntaxKind.NamedImports) {
       const namedImports = importClause.children![n] as TSMorphOtherNodeType;
       const syntaxList = namedImports.children![1] as TSMorphSyntaxListType;
@@ -338,7 +338,7 @@ function evalSyntax(syntax: TSMorphOtherNodeType, variables: { [key: string]: an
       // TODO module.defaultの扱いは正しいか？
       // TODO リテラルの値を正しく共有する
       const namespaceExport = syntax.children![1] as TSMorphOtherNodeType;
-      exports.object![namespaceExport.children![2].text!] = module.default
+      exports.object![(namespaceExport.children![2] as TSMorphOtherNodeType).text!] = module.default
         ? { default: module.default, ...module.object }
         : { ...module.object };
     }
@@ -441,7 +441,7 @@ function evalExpression(syntax: TSMorphOtherNodeType, variables: { [key: string]
           assignmentFunc: undefined
         };
 
-    const newValue = object[syntax.children![2].text!];
+    const newValue = object[(syntax.children![2] as TSMorphOtherNodeType).text!];
     return {
       value:
         typeof newValue === "function"
@@ -659,7 +659,7 @@ function evalObjectBindingPattern(objectBindingPattern: TSMorphOtherNodeType, va
   }
 }
 
-export function addChildCodeTextForLog(nodeJson: TSMorphNodeType, text = "") {
+export function addChildCodeTextForLog(nodeJson: TSMorphSyntaxListType | TSMorphOtherNodeType, text = "") {
   if (nodeJson.children)
     nodeJson.children.forEach(childJson => text += addChildCodeTextForLog(childJson));
   else

@@ -86,25 +86,23 @@ function addWhitespaces(sourceFileFullText: string, node: TSMorphSourceFileType 
   if (node.type !== OtherNodeTypeId)
     return start;
 
-  let { children, leadingCommentRanges, text, trailingCommentRanges } = node;
-
-  if (children)
-    children.forEach(child => start = addWhitespaces(sourceFileFullText, child, start));
+  if (node.children)
+    node.children.forEach(child => start = addWhitespaces(sourceFileFullText, child, start));
   else {
-    if (text) {
-      leadingCommentRanges?.forEach(commentRange => {
+    if (node.text) {
+      node.leadingCommentRanges?.forEach(commentRange => {
         const indexOf = sourceFileFullText.indexOf(commentRange, start);
         if (indexOf === -1) return;
         node.whitespaces!.push(sourceFileFullText.substring(start, indexOf));
         start = indexOf + commentRange.length;
       });
 
-      const indexOf = sourceFileFullText.indexOf(text, start);
+      const indexOf = sourceFileFullText.indexOf(node.text, start);
       node.whitespaces!.push(sourceFileFullText.substring(start, indexOf));
-      start = indexOf + text.length;
+      start = indexOf + node.text.length;
     }
 
-    trailingCommentRanges?.forEach(commentRange => {
+    node.trailingCommentRanges?.forEach(commentRange => {
       const indexOf = sourceFileFullText.indexOf(commentRange, start);
       if (indexOf === -1) return;
       node.whitespaces!.push(sourceFileFullText.substring(start, indexOf));
@@ -143,9 +141,9 @@ export function setToSourceFile(sourceFile: SourceFile, json: ReturnType<typeof 
   sourceFile.replaceWithText(addFullText(json.syntaxList.children, undefined, undefined, json.commentRangesAtEndOfFile, json.whitespaces));
 }
 
-export function addFullText(children?: TSMorphNodeType[], leadingCommentRanges?: string[], text?: string, trailingCommentRanges?: string[], whitespaces?: string[], fullText = "") {
+export function addFullText(children?: (TSMorphSyntaxListType | TSMorphOtherNodeType)[], leadingCommentRanges?: string[], text?: string, trailingCommentRanges?: string[], whitespaces?: string[], fullText = "") {
   if (children)
-    children.forEach(childJson => fullText = addFullText(childJson.children, childJson.leadingCommentRanges, childJson.text, childJson.trailingCommentRanges, childJson.whitespaces, fullText));
+    children.forEach(child => fullText = addFullText(child.children, (child as TSMorphOtherNodeType).leadingCommentRanges, (child as TSMorphOtherNodeType).text, (child as TSMorphOtherNodeType).trailingCommentRanges, (child as TSMorphOtherNodeType).whitespaces, fullText));
 
   let whitespaceIndex = 0;
 
@@ -170,22 +168,12 @@ export function addFullText(children?: TSMorphNodeType[], leadingCommentRanges?:
   return fullText;
 }
 
-export type TSMorphNodeType = TreeNodeType & {
-  type: typeof SyntaxListTypeId | typeof OtherNodeTypeId;
-  kind: SyntaxKind;
-  children?: (TSMorphSyntaxListType | TSMorphOtherNodeType)[];
-  text?: string;
-  leadingCommentRanges?: string[];
-  trailingCommentRanges?: string[];
-  whitespaces?: string[];
-};
-
 export const SyntaxListTypeId = 'densyakun-tsmorph-syntaxlist';
 
-export type TSMorphSyntaxListType = TSMorphNodeType & {
+export type TSMorphSyntaxListType = TreeNodeType & {
   type: typeof SyntaxListTypeId;
   kind: SyntaxKind.SyntaxList;
-  children: (TSMorphSyntaxListType | TSMorphOtherNodeType)[];
+  children: TSMorphOtherNodeType[];
 };
 
 export function getFromSyntaxList(syntaxList: SyntaxList): TSMorphSyntaxListType {
@@ -201,9 +189,23 @@ export function getFromSyntaxList(syntaxList: SyntaxList): TSMorphSyntaxListType
 
 export const OtherNodeTypeId = 'densyakun-tsmorph-othernode';
 
-export type TSMorphOtherNodeType = TSMorphNodeType & {
+export type TSMorphOtherNodeType = TreeNodeType & ({
   type: typeof OtherNodeTypeId;
-};
+  kind: SyntaxKind;
+  children: (TSMorphSyntaxListType | TSMorphOtherNodeType)[];
+  text?: undefined;
+  leadingCommentRanges?: undefined;
+  trailingCommentRanges?: undefined;
+  whitespaces?: undefined;
+} | {
+  type: typeof OtherNodeTypeId;
+  kind: SyntaxKind;
+  children?: undefined;
+  text: string;
+  leadingCommentRanges: string[];
+  trailingCommentRanges: string[];
+  whitespaces: string[];
+});
 
 export function getFromOtherNode(node: Node): TSMorphOtherNodeType {
   const kind = node.getKind();
@@ -259,11 +261,11 @@ const postNodeByBreadcrumbFuncMap: { [key: string]: postNodeByBreadcrumbFunc } =
     return (newChildNode as TSMorphSourceFileType).filePath;
   },
   [SourceFileTypeId]: (node, newChildNode, index = (node as TSMorphSourceFileType).syntaxList.children.length) => {
-    (node as TSMorphSourceFileType).syntaxList.children.splice(index, 0, newChildNode as TSMorphSyntaxListType | TSMorphOtherNodeType);
+    (node as TSMorphSourceFileType).syntaxList.children.splice(index, 0, newChildNode as TSMorphOtherNodeType);
     return index.toString();
   },
   [SyntaxListTypeId]: (node, newChildNode, index = (node as TSMorphSyntaxListType).children.length) => {
-    (node as TSMorphSyntaxListType).children.splice(index, 0, newChildNode as TSMorphSyntaxListType | TSMorphOtherNodeType);
+    (node as TSMorphSyntaxListType).children.splice(index, 0, newChildNode as TSMorphOtherNodeType);
     return index.toString();
   },
   [OtherNodeTypeId]: (node, newChildNode, index = (node as TSMorphOtherNodeType).children?.length || 0) => {
@@ -284,11 +286,11 @@ const putNodeByBreadcrumbFuncMap: { [key: string]: putNodeByBreadcrumbFunc } = {
   },
   [SourceFileTypeId]: (node, breadcrumb, newChildNode) => {
     const sourceFile = node as TSMorphSourceFileType;
-    return sourceFile.syntaxList.children.splice(parseInt(breadcrumb), 1, newChildNode as TSMorphSyntaxListType | TSMorphOtherNodeType)[0];
+    return sourceFile.syntaxList.children.splice(parseInt(breadcrumb), 1, newChildNode as TSMorphOtherNodeType)[0];
   },
   [SyntaxListTypeId]: (node, breadcrumb, newChildNode) => {
     const syntaxList = node as TSMorphSyntaxListType;
-    return syntaxList.children.splice(parseInt(breadcrumb), 1, newChildNode as TSMorphSyntaxListType | TSMorphOtherNodeType)[0];
+    return syntaxList.children.splice(parseInt(breadcrumb), 1, newChildNode as TSMorphOtherNodeType)[0];
   },
   [OtherNodeTypeId]: (node, breadcrumb, newChildNode) => {
     const otherNode = node as TSMorphOtherNodeType;

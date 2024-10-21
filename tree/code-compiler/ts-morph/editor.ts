@@ -36,6 +36,7 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
     },
     dataTexts: [
       `Comment ranges at EOF: ${JSON.stringify((node as TSMorphSourceFileType).commentRangesAtEndOfFile)}`,
+      `Whitespaces: ${JSON.stringify((node as TSMorphSourceFileType).whitespaces)}`,
     ],
   }),
   [SyntaxListTypeId]: node => ({
@@ -43,14 +44,6 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
     itemLists: {
       "Syntaxes": nodeChildrenItemList(node as TSMorphSyntaxListType),
     },
-    dataTexts: (node as TSMorphNodeType).text
-      ? [
-        `Leading comment ranges: ${JSON.stringify((node as TSMorphNodeType).leadingCommentRanges)}`,
-        `Text: ${JSON.stringify((node as TSMorphNodeType).text)}`,
-        `Trailing comment ranges: ${JSON.stringify((node as TSMorphNodeType).trailingCommentRanges)}`,
-      ]
-      : []
-    ,
   }),
   [OtherNodeTypeId]: (node, setter) => {
     const editorui: EditorUIType | undefined = (node as TSMorphNodeType).kind === SyntaxKind.StringLiteral
@@ -59,6 +52,7 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
         getter: () => (node as TSMorphNodeType).text!.substring(1, (node as TSMorphNodeType).text!.length - 1),
         setter: (value: string) => {
           const newNode = { ...node } as TSMorphNodeType;
+          // TODO エスケープ文字
           newNode.text = `"${value}"`;
           setter(newNode);
         },
@@ -75,6 +69,7 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
           `Leading comment ranges: ${JSON.stringify((node as TSMorphNodeType).leadingCommentRanges)}`,
           `Text: ${JSON.stringify((node as TSMorphNodeType).text)}`,
           `Trailing comment ranges: ${JSON.stringify((node as TSMorphNodeType).trailingCommentRanges)}`,
+          `Whitespaces: ${JSON.stringify((node as TSMorphNodeType).whitespaces)}`,
         ]
         : []
       ,

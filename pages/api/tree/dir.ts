@@ -3,8 +3,9 @@ import { loadDirectory, saveDirectory, TSMorphProjectType, TSMorphProjectTypeId 
 
 export const config = {
   api: {
+    responseLimit: '8mb',
     bodyParser: {
-      sizeLimit: '10mb',
+      sizeLimit: '8mb',
     },
   },
 };

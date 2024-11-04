@@ -90,13 +90,11 @@ export function deleteNodeByBreadcrumbs(node: Readonly<TreeNodeType>, breadcrumb
   }
 }
 
-export function getNodeEditor(node: TreeNodeType, editors: EditorType[], setter: (node: TreeNodeType) => void) {
+export function getNodeEditor(nodeTree: Readonly<TreeNodeType>, breadcrumbPaths: Readonly<string[]>, navigatedNode: Readonly<TreeNodeType>, treeCompilers: Readonly<TreeCompilerType[]>, editors: EditorType[], setter: (node: TreeNodeType) => void) {
   for (const editor of editors) {
-    const nodeEditorFunc = editor.getNodeEditorFuncMap[node.type];
+    const nodeEditorFunc = editor.getNodeEditorFuncMap[navigatedNode.type];
 
     if (nodeEditorFunc)
-      return nodeEditorFunc(node, setter);
+      return nodeEditorFunc(nodeTree, breadcrumbPaths, navigatedNode, treeCompilers, setter);
   }
-
-  return null;
 }

@@ -2,17 +2,17 @@ import { useSnapshot } from "valtio";
 import treeState from "../lib/state";
 import { getNodeEditor, putNodeByBreadcrumbs } from "../lib/util";
 import { EditorType } from "../lib/type";
-import { Breadcrumbs, IconButton, Link, List, Stack, TextField, Typography } from "@mui/material";
+import { Breadcrumbs, FormControl, IconButton, InputLabel, Link, List, MenuItem, Select, SelectChangeEvent, Stack, TextField, Typography } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import type { NodeTreeEditorStateType } from "../lib/createNodeTreeEditorState";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 import ItemList from "./ItemList";
 
 export default function NodeEditor({ nodeTreeEditorState }: { nodeTreeEditorState: NodeTreeEditorStateType }) {
-  const { navigatedNode, breadcrumbs, breadcrumbPaths } = useSnapshot(nodeTreeEditorState);
-  const { editors } = useSnapshot(treeState);
+  const { nodeTree, navigatedNode, breadcrumbs, breadcrumbPaths } = useSnapshot(nodeTreeEditorState);
+  const { treeCompilers, editors } = useSnapshot(treeState);
 
-  const nodeEditor = navigatedNode && getNodeEditor(navigatedNode, editors as EditorType[], node => {
+  const nodeEditor = nodeTree && navigatedNode && treeCompilers && getNodeEditor(nodeTree, breadcrumbPaths, navigatedNode, treeCompilers, editors as EditorType[], node => {
     if (!nodeTreeEditorState.nodeTree) return;
     putNodeByBreadcrumbs(nodeTreeEditorState.nodeTree, breadcrumbPaths, treeState.treeCompilers, node);
   });
@@ -64,13 +64,28 @@ export default function NodeEditor({ nodeTreeEditorState }: { nodeTreeEditorStat
       }
       {nodeEditor.editorui && (
         nodeEditor.editorui.type === "string"
-          ? <TextField
-            label={nodeEditor.editorui.label}
-            value={nodeEditor.editorui.getter()}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              nodeEditor.editorui?.setter(event.target.value);
-            }}
-          />
+          ? nodeEditor.editorui.selectItems
+            ? <FormControl fullWidth>
+              <InputLabel>{nodeEditor.editorui.label}</InputLabel>
+              <Select
+                value={nodeEditor.editorui.getter()}
+                onChange={(event: SelectChangeEvent) => {
+                  nodeEditor.editorui?.setter(event.target.value);
+                }}
+                label={nodeEditor.editorui.label}
+              >
+                {nodeEditor.editorui.selectItems.map((item, index) =>
+                  <MenuItem key={index} value={item}>{item}</MenuItem>
+                )}
+              </Select>
+            </FormControl>
+            : <TextField
+              label={nodeEditor.editorui.label}
+              value={nodeEditor.editorui.getter()}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                nodeEditor.editorui?.setter(event.target.value);
+              }}
+            />
           : nodeEditor.editorui.type === "number"
             ? <>
               <TextField

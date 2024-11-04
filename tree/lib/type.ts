@@ -1,3 +1,5 @@
+import { TreeCompilerType } from "../tree-compiler/type";
+
 export type TreeNodeType = {
   type: string;
 };
@@ -26,6 +28,7 @@ export type NodeEditorType = {
 export type EditorUIType = {
   label: string;
   type: 'string' | 'number';
+  selectItems?: string[];
   getter: () => string;
   setter: (value: string) => void;
 };
@@ -36,7 +39,7 @@ export type TreeNodeListItemType = {
   color: string;
 };
 
-export type getNodeEditorFunc = (node: TreeNodeType, setter: (node: TreeNodeType) => void) => NodeEditorType;
+export type getNodeEditorFunc = (nodeTree: Readonly<TreeNodeType>, breadcrumbPaths: Readonly<string[]>, node: Readonly<TreeNodeType>, treeCompilers: Readonly<TreeCompilerType[]>, setter: (node: TreeNodeType) => void) => NodeEditorType | undefined;
 
 export type EditorType = {
   getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc };

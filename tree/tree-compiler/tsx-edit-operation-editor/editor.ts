@@ -5,7 +5,7 @@ import tsMorphEditor from "@/tree/code-compiler/ts-morph/editor";
 import { SourceFileTypeId } from "@/tree/code-compiler/ts-morph/compiler";
 
 const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
-  [NextJSTypeId]: node => {
+  [NextJSTypeId]: (nodeTree, breadcrumbPaths, node) => {
     const itemLists: { [key: string]: TreeNodeListItemType[] } = {
       "Pages": Object.keys((node as NextJSType).pages).map(key => {
         const sourceFile = (node as NextJSType).pages[key];
@@ -52,12 +52,12 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
       topItemListKeys: ["Unresolved pages"],
     };
   },
-  [NextJSUnresolvedPageTypeId]: (node, setter) => ({
+  [NextJSUnresolvedPageTypeId]: (nodeTree, breadcrumbPaths, node, treeCompilers, setter) => ({
     title: "Unresolved page",
-    itemLists: tsMorphEditor.getNodeEditorFuncMap[SourceFileTypeId]((node as NextJSUnresolvedPageType).sourceFile, sourceFile => setter({
+    itemLists: tsMorphEditor.getNodeEditorFuncMap[SourceFileTypeId](nodeTree, breadcrumbPaths, (node as NextJSUnresolvedPageType).sourceFile, treeCompilers, sourceFile => setter({
       ...node,
       sourceFile,
-    } as NextJSUnresolvedPageType)).itemLists,
+    } as NextJSUnresolvedPageType))?.itemLists,
     dataTexts: [
       `Route: ${(node as NextJSUnresolvedPageType).route}`,
     ],

@@ -390,10 +390,10 @@ function assignVariable(variables: { [key: string]: any }[], key: string, value:
 }
 
 function evalExpression(syntax: TSMorphOtherNodeType, variables: { [key: string]: any }[]): { value: any, assignmentFunc: ((value: any) => any) | undefined } | undefined {
-  if (syntax.kind === SyntaxKind.StringLiteral) {
-    return { value: syntax.text!.substring(1, syntax.text!.length - 1), assignmentFunc: undefined };
-  } else if (syntax.kind === SyntaxKind.FirstLiteralToken) {
+  if (syntax.kind === SyntaxKind.FirstLiteralToken) {
     return { value: Number(syntax.text!), assignmentFunc: undefined };
+  } else if (syntax.kind === SyntaxKind.StringLiteral) {
+    return { value: syntax.text!.substring(1, syntax.text!.length - 1), assignmentFunc: undefined };
   } else if (syntax.kind === SyntaxKind.Identifier) {
     return { value: getVariableValue(variables, syntax.text!), assignmentFunc: (value: any) => assignVariable(variables, syntax.text!, value) };
   } else if (syntax.kind === SyntaxKind.ComputedPropertyName) {

@@ -20,7 +20,7 @@ function nodeChildrenItemList(node: TSMorphSyntaxListType | TSMorphOtherNodeType
   }) || [];
 }
 
-function getIdentifiers(nodeTree: Readonly<TreeNodeType>, breadcrumbPaths: Readonly<string[]>, treeCompilers: Readonly<TreeCompilerType[]>, identifiers: string[] = []) {
+function addIdentifier(nodeTree: Readonly<TreeNodeType>, breadcrumbPaths: Readonly<string[]>, treeCompilers: Readonly<TreeCompilerType[]>, identifiers: string[] = []) {
   const node = getNodeByBreadcrumbs(nodeTree, breadcrumbPaths, treeCompilers);
   if (!node) return;
 
@@ -110,18 +110,18 @@ function getIdentifiersCheckParent(nodeTree: Readonly<TreeNodeType>, breadcrumbP
 
   if (parentNode.type === OtherNodeTypeId) {
     if ((parentNode as TSMorphOtherNodeType).kind !== SyntaxKind.FirstStatement)
-      getIdentifiers(nodeTree, breadcrumbPaths.slice(0, -1), treeCompilers, identifiers);
+      addIdentifier(nodeTree, breadcrumbPaths.slice(0, -1), treeCompilers, identifiers);
   } else if (parentNode.type === SyntaxListTypeId) {
     const breadcrumbPaths_ = [...breadcrumbPaths];
     (parentNode as TSMorphSyntaxListType).children.slice(0, parseInt(breadcrumbPaths[breadcrumbPaths.length - 1])).forEach((_, index) => {
       breadcrumbPaths_[breadcrumbPaths_.length - 1] = index.toString();
-      getIdentifiers(nodeTree, breadcrumbPaths_, treeCompilers, identifiers);
+      addIdentifier(nodeTree, breadcrumbPaths_, treeCompilers, identifiers);
     });
   } else if (parentNode.type === SourceFileTypeId) {
     const breadcrumbPaths_ = [...breadcrumbPaths];
     (parentNode as TSMorphSourceFileType).syntaxList.children.slice(0, parseInt(breadcrumbPaths[breadcrumbPaths.length - 1])).forEach((_, index) => {
       breadcrumbPaths_[breadcrumbPaths_.length - 1] = index.toString();
-      getIdentifiers(nodeTree, breadcrumbPaths_, treeCompilers, identifiers);
+      addIdentifier(nodeTree, breadcrumbPaths_, treeCompilers, identifiers);
     });
   }
 
@@ -161,7 +161,18 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
   [OtherNodeTypeId]: (nodeTree, breadcrumbPaths, node, treeCompilers, setter) => {
     let editorui: EditorUIType | undefined = undefined;
 
-    if ((node as TSMorphOtherNodeType).kind === SyntaxKind.StringLiteral)
+    if ((node as TSMorphOtherNodeType).kind === SyntaxKind.FirstLiteralToken)
+      editorui = {
+        label: "Value",
+        type: "number",
+        getter: () => (node as TSMorphOtherNodeType).text!,
+        setter: (value: string) => {
+          const newNode = { ...node } as TSMorphOtherNodeType;
+          newNode.text = value;
+          setter(newNode);
+        },
+      };
+    else if ((node as TSMorphOtherNodeType).kind === SyntaxKind.StringLiteral)
       editorui = {
         label: "Value",
         type: "string",
@@ -170,17 +181,6 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
           const newNode = { ...node } as TSMorphOtherNodeType;
           // TODO エスケープ文字
           newNode.text = `"${value}"`;
-          setter(newNode);
-        },
-      };
-    else if ((node as TSMorphOtherNodeType).kind === SyntaxKind.FirstLiteralToken)
-      editorui = {
-        label: "Value",
-        type: "number",
-        getter: () => (node as TSMorphOtherNodeType).text!,
-        setter: (value: string) => {
-          const newNode = { ...node } as TSMorphOtherNodeType;
-          newNode.text = value;
           setter(newNode);
         },
       };

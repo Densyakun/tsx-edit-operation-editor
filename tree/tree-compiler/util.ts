@@ -493,24 +493,27 @@ function evalExpression(syntax: TSMorphOtherNodeType, variables: { [key: string]
     else if (syntax.children![0].kind === SyntaxKind.PlusPlusToken) {
       const right = evalExpression(syntax.children![1] as TSMorphOtherNodeType, variables);
       return { value: right?.assignmentFunc!(++right.value), assignmentFunc: undefined };
-    } else if (syntax.children![1].kind === SyntaxKind.PlusPlusToken) {
-      const left = evalExpression(syntax.children![0] as TSMorphOtherNodeType, variables);
-      const value = left?.value;
-      left?.assignmentFunc!(++left.value);
-      return { value, assignmentFunc: undefined };
     } else if (syntax.children![0].kind === SyntaxKind.MinusMinusToken) {
       const right = evalExpression(syntax.children![1] as TSMorphOtherNodeType, variables);
       return { value: right?.assignmentFunc!(--right.value), assignmentFunc: undefined };
-    } else if (syntax.children![1].kind === SyntaxKind.MinusMinusToken) {
-      const left = evalExpression(syntax.children![0] as TSMorphOtherNodeType, variables);
-      const value = left?.value;
-      left?.assignmentFunc!(--left.value);
-      return { value, assignmentFunc: undefined };
     } else if (syntax.children![0].kind === SyntaxKind.ExclamationToken)
       return { value: !evalExpression(syntax.children![1] as TSMorphOtherNodeType, variables)?.value, assignmentFunc: undefined };
     else if (syntax.children![0].kind === SyntaxKind.TildeToken)
       return { value: ~evalExpression(syntax.children![1] as TSMorphOtherNodeType, variables)?.value, assignmentFunc: undefined };
     else
+      throw new Error(SyntaxKind[syntax.children![0].kind]);
+  } else if (syntax.kind === SyntaxKind.PostfixUnaryExpression) {
+    if (syntax.children![1].kind === SyntaxKind.PlusPlusToken) {
+      const left = evalExpression(syntax.children![0] as TSMorphOtherNodeType, variables);
+      const value = left?.value;
+      left?.assignmentFunc!(++left.value);
+      return { value, assignmentFunc: undefined };
+    } else if (syntax.children![1].kind === SyntaxKind.MinusMinusToken) {
+      const left = evalExpression(syntax.children![0] as TSMorphOtherNodeType, variables);
+      const value = left?.value;
+      left?.assignmentFunc!(--left.value);
+      return { value, assignmentFunc: undefined };
+    } else
       throw new Error(SyntaxKind[syntax.children![1].kind]);
   } else if (syntax.kind === SyntaxKind.BinaryExpression) {
     const left = evalExpression(syntax.children![0] as TSMorphOtherNodeType, variables);

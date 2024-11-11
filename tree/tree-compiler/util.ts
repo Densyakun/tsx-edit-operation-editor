@@ -8,13 +8,26 @@ import { AddonJsonType, AddonType } from "./type";
 
 const { getFromSyntaxList } = treeCodeCompilerTSMorphCompilerNamespace;
 
-// TODO クラス, super
+// TODO false, true, null, this (Expressionとして対応)
+// TODO undefined keyword (Identifier)
+// TODO while, do...while, for, for-in, break, continue, ラベル付きブロック
+// TODO switch
+// TODO throw, try/catch
+// TODO クラス, クラス式, super, static, abstruct
 // TODO 残余引数、デフォルト引数
 // TODO 分割代入（Destructuring assignment - JavaScript | MDN より Unpacking properties from objects passed as a function parameter のみ実装済）
 // TODO Async
-// TODO delete, typeof, void, in, instanceof, this, new, new.target
+// TODO delete, typeof, void, new, new.target
 // TODO 正規表現リテラル, テンプレートリテラル
-// TODO import.meta, import()
+// TODO ゲッター, セッター
+// TODO ジェネレーター関数, yield
+// TODO import(), インポート属性, import.meta
+// TODO 関数宣言の巻き上げ
+// TODO constへの再代入の禁止
+// TODO デコレーター
+// TODO プライベートプロパティ
+// TODO Module Fragments
+// TODO ジェネリクス
 
 export type ModuleType = { default?: any, object?: { [key: string]: any } };
 
@@ -134,6 +147,8 @@ function evalSyntax(syntax: TSMorphOtherNodeType, variables: { [key: string]: an
     for (let n = 0; n < syntaxList.children.length; n += 2) {
       const variableDeclaration = syntaxList.children[n] as TSMorphOtherNodeType;
 
+      // TODO ObjectBindingPattern
+      // TODO ArrayBindingPattern
       const identifier = variableDeclaration.children![0] as TSMorphOtherNodeType;
 
       variables[variables.length - 1][identifier.text!] = variableDeclaration.children!.length === 1
@@ -459,7 +474,6 @@ function evalExpression(syntax: TSMorphOtherNodeType, variables: { [key: string]
 
     const syntaxList = syntax.children![2] as TSMorphSyntaxListType;
 
-    // TODO スプレッド構文
     const args = [];
     for (let n = 0; n < syntaxList.children.length; n += 2) {
       if (syntaxList.children[n].kind === SyntaxKind.SpreadElement) {
@@ -582,6 +596,10 @@ function evalExpression(syntax: TSMorphOtherNodeType, variables: { [key: string]
       return { value: left?.assignmentFunc!(left.value ?? right?.value), assignmentFunc: undefined };
     else if (syntax.children![1].kind === SyntaxKind.LastBinaryOperator)
       return { value: left?.assignmentFunc!(left.value ^ right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.InKeyword)
+      return { value: left?.assignmentFunc!(left.value in right?.value), assignmentFunc: undefined };
+    else if (syntax.children![1].kind === SyntaxKind.InstanceOfKeyword)
+      return { value: left?.assignmentFunc!(left.value instanceof right?.value), assignmentFunc: undefined };
     else
       throw new Error(SyntaxKind[syntax.children![1].kind]);
   } else if (syntax.kind === SyntaxKind.ArrowFunction) {

@@ -1,6 +1,6 @@
 import tsMorphCompiler, { TSMorphProjectTypeId, SourceFileTypeId } from "@/tree/code-compiler/ts-morph/compiler";
 import type { TSMorphProjectType, TSMorphSourceFileType } from "@/tree/code-compiler/ts-morph/compiler";
-import type { getNodeByBreadcrumbFunc, TreeNodeType } from "@/tree/lib/type";
+import type { deleteNodeByBreadcrumbFunc, getNodeByBreadcrumbFunc, postNodeByBreadcrumbFunc, putNodeByBreadcrumbFunc, TreeNodeType } from "@/tree/lib/type";
 import type { TreeCompilerType } from "@/tree/tree-compiler/type";
 import normalizePath from "normalize-path";
 import path from "path";
@@ -145,4 +145,13 @@ const getNodeByBreadcrumbFuncMap: { [key: string]: getNodeByBreadcrumbFunc } = {
   ,
 };
 
-export default { decompile, compile, getNodeByBreadcrumbFuncMap } as TreeCompilerType;
+const postNodeByBreadcrumbFuncMap: { [key: string]: postNodeByBreadcrumbFunc } = {
+};
+
+const putNodeByBreadcrumbFuncMap: { [key: string]: putNodeByBreadcrumbFunc } = {
+};
+
+const deleteNodeByBreadcrumbFuncMap: { [key: string]: deleteNodeByBreadcrumbFunc } = {
+};
+
+export default { decompile, compile, getNodeByBreadcrumbFuncMap, postNodeByBreadcrumbFuncMap, putNodeByBreadcrumbFuncMap, deleteNodeByBreadcrumbFuncMap } as TreeCompilerType;

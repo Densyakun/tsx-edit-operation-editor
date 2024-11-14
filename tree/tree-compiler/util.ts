@@ -218,7 +218,7 @@ function evalSyntax(syntax: TSMorphOtherNodeType, variables: { [key: string]: an
     const identifier = syntax.children![1 + n] as TSMorphOtherNodeType;
 
     variables[variables.length - 1][identifier.text!] = getFunc(
-      syntax.children![(5 < syntax.children!.length ? 7 : 5) + n] as TSMorphOtherNodeType,
+      syntax.children![(6 < syntax.children!.length ? 7 : 5) + n] as TSMorphOtherNodeType,
       syntax.children![3 + n] as TSMorphSyntaxListType,
       cloneScope(variables)
     );
@@ -648,7 +648,7 @@ function evalBlockOrSyntax(node: TSMorphOtherNodeType, variables: { [key: string
 function getFunc(blockOrSyntax: TSMorphOtherNodeType, parametersSyntaxList: TSMorphSyntaxListType, variables: { [key: string]: any }[]) {
   return (...args: any) => {
     variables.push({});
-    for (let n = 0; n < args.length && n < parametersSyntaxList.children.length; n++) {
+    for (let n = 0; n < args.length && n * 2 < parametersSyntaxList.children.length; n++) {
       const parameter = parametersSyntaxList.children[n * 2] as TSMorphOtherNodeType;
       if (parameter.children![0].kind === SyntaxKind.Identifier)
         variables[variables.length - 1][parameter.children![0].text!] = args[n];

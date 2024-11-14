@@ -462,7 +462,7 @@ function evalExpression(syntax: TSMorphOtherNodeType, variables: { [key: string]
         typeof newValue === "function"
           ? newValue.bind(object)
           : newValue,
-      assignmentFunc: undefined
+      assignmentFunc: (value: any) => object[(syntax.children![2] as TSMorphOtherNodeType).text!] = value
     };
   } else if (syntax.kind === SyntaxKind.ElementAccessExpression) {
     const expression = evalExpression(syntax.children![0] as TSMorphOtherNodeType, variables);

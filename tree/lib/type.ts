@@ -23,6 +23,7 @@ export type NodeEditorType = {
   topItemListKeys?: string[];
   dataTexts?: string[];
   editorui?: EditorUIType;
+  addChildNodeList?: AddChildNodeType[];
 };
 
 export type EditorUIType = {
@@ -43,4 +44,9 @@ export type getNodeEditorFunc = (nodeTree: Readonly<TreeNodeType>, breadcrumbPat
 
 export type EditorType = {
   getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc };
+};
+
+export type AddChildNodeType = {
+  label: string,
+  func: () => void,
 };

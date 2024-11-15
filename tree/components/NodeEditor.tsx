@@ -1,12 +1,43 @@
 import { useSnapshot } from "valtio";
 import treeState from "../lib/state";
 import { getNodeEditor, putNodeByBreadcrumbs } from "../lib/util";
-import { EditorType } from "../lib/type";
-import { Breadcrumbs, FormControl, IconButton, InputLabel, Link, List, MenuItem, Select, SelectChangeEvent, Stack, TextField, Typography } from "@mui/material";
+import { AddChildNodeType, EditorType } from "../lib/type";
+import { Breadcrumbs, Button, Dialog, DialogTitle, FormControl, IconButton, InputLabel, Link, List, ListItem, ListItemButton, ListItemText, MenuItem, Select, SelectChangeEvent, Stack, TextField, Typography } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import HomeIcon from "@mui/icons-material/Home";
 import type { NodeTreeEditorStateType } from "../lib/createNodeTreeEditorState";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 import ItemList from "./ItemList";
+import { useState } from "react";
+
+export interface SimpleDialogProps {
+  open: boolean;
+  onClose: () => void;
+  addChildNodeList: AddChildNodeType[];
+}
+
+function SimpleDialog(props: SimpleDialogProps) {
+  const { onClose, open, addChildNodeList } = props;
+
+  const handleClose = () => {
+    onClose();
+  };
+
+  return (
+    <Dialog onClose={handleClose} open={open}>
+      <DialogTitle>Add child node</DialogTitle>
+      <List sx={{ pt: 0 }}>
+        {addChildNodeList.map(({ label, func }) =>
+          <ListItem disableGutters key={label}>
+            <ListItemButton onClick={() => func()}>
+              <ListItemText primary={label} />
+            </ListItemButton>
+          </ListItem>
+        )}
+      </List>
+    </Dialog>
+  );
+}
 
 export default function NodeEditor({ nodeTreeEditorState }: { nodeTreeEditorState: NodeTreeEditorStateType }) {
   const { nodeTree, navigatedNode, breadcrumbs, breadcrumbPaths } = useSnapshot(nodeTreeEditorState);
@@ -16,6 +47,12 @@ export default function NodeEditor({ nodeTreeEditorState }: { nodeTreeEditorStat
     if (!nodeTreeEditorState.nodeTree) return;
     putNodeByBreadcrumbs(nodeTreeEditorState.nodeTree, breadcrumbPaths, treeState.treeCompilers, node);
   });
+
+  const [open, setOpen] = useState(false);
+
+  const handleClose = () => {
+    setOpen(false);
+  };
 
   return <Stack spacing={1}>
     {0 < breadcrumbs.length && <Stack spacing={1} direction="row" alignItems="center">
@@ -101,6 +138,16 @@ export default function NodeEditor({ nodeTreeEditorState }: { nodeTreeEditorStat
             </>
             : null
       )}
+      {nodeEditor.addChildNodeList && <>
+        <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
+          Add
+        </Button>
+        <SimpleDialog
+          open={open}
+          onClose={handleClose}
+          addChildNodeList={nodeEditor.addChildNodeList}
+        />
+      </>}
     </>}
   </Stack>;
 }

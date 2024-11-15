@@ -131,6 +131,51 @@ function getIdentifiersCheckParent(nodeTree: Readonly<TreeNodeType>, breadcrumbP
   return identifiers;
 }
 
+const getAddChildNodeList = (node: TreeNodeType, setter: (node: TreeNodeType) => void) => [
+  {
+    label: "Block",
+    func: () => {
+      setter({
+        ...node,
+        syntaxList: {
+          type: SyntaxListTypeId,
+          kind: SyntaxKind.SyntaxList,
+          children: [
+            ...(node as TSMorphSourceFileType).syntaxList.children,
+            {
+              type: OtherNodeTypeId,
+              kind: SyntaxKind.Block,
+              children: [
+                {
+                  type: OtherNodeTypeId,
+                  kind: SyntaxKind.OpenBraceToken,
+                  text: "{",
+                  leadingCommentRanges: [],
+                  trailingCommentRanges: [],
+                  whitespaces: ["\r\n"],
+                },
+                {
+                  type: SyntaxListTypeId,
+                  kind: SyntaxKind.SyntaxList,
+                  children: [],
+                },
+                {
+                  type: OtherNodeTypeId,
+                  kind: SyntaxKind.CloseBraceToken,
+                  text: "}",
+                  leadingCommentRanges: [],
+                  trailingCommentRanges: [],
+                  whitespaces: ["\r\n"],
+                },
+              ]
+            },
+          ],
+        },
+      } as TSMorphSourceFileType);
+    },
+  },
+];
+
 const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
   [TSMorphProjectTypeId]: (nodeTree, breadcrumbPaths, node) => ({
     title: "ts-morph Project",
@@ -142,7 +187,7 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
       })),
     },
   }),
-  [SourceFileTypeId]: (nodeTree, breadcrumbPaths, node) => ({
+  [SourceFileTypeId]: (nodeTree, breadcrumbPaths, node, treeCompilers, setter) => ({
     title: "Source file",
     itemLists: {
       "Syntaxes": nodeChildrenItemList((node as TSMorphSourceFileType).syntaxList),
@@ -151,6 +196,7 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
       `Comment ranges at EOF: ${JSON.stringify((node as TSMorphSourceFileType).commentRangesAtEndOfFile)}`,
       `Whitespaces: ${JSON.stringify((node as TSMorphSourceFileType).whitespaces)}`,
     ],
+    addChildNodeList: getAddChildNodeList(node, setter),
   }),
   [SyntaxListTypeId]: (nodeTree, breadcrumbPaths, node) => ({
     title: "ts-morph Syntax list",
@@ -159,7 +205,7 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
     },
   }),
   [OtherNodeTypeId]: (nodeTree, breadcrumbPaths, node, treeCompilers, setter) => {
-    let editorui: EditorUIType | undefined = undefined;
+    let editorui: EditorUIType | undefined;
 
     if ((node as TSMorphOtherNodeType).kind === SyntaxKind.FirstLiteralToken)
       editorui = {

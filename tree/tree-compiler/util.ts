@@ -16,7 +16,9 @@ const { getFromSyntaxList } = treeCodeCompilerTSMorphCompilerNamespace;
 // TODO throw, try/catch
 // TODO クラス, クラス式, super, static, abstruct
 // TODO 残余引数、デフォルト引数
-// TODO 分割代入（Destructuring assignment - JavaScript | MDN より Unpacking properties from objects passed as a function parameter のみ実装済）
+// TODO 分割代入（Destructuring assignment - JavaScript | MDN より次の機能のみ実装済
+// - Binding and assignment
+// - Unpacking properties from objects passed as a function parameter
 // TODO Async
 // TODO delete, typeof, void, new, new.target
 // TODO 正規表現リテラル, テンプレートリテラル
@@ -135,23 +137,31 @@ export function getAddonByJson(json: AddonJsonType): AddonType | undefined {
   };
 }
 
-function evalVariableDeclarationList(variableDeclarationList: TSMorphOtherNodeType, variables: { [key: string]: any }[], isExport: boolean) {
+function evalVariableDeclarationList(variableDeclarationList: TSMorphOtherNodeType, variables: { [key: string]: any }[], isExport = false) {
   const syntaxList = variableDeclarationList.children![1] as TSMorphSyntaxListType;
   const exportProps: { [key: string]: any } = {};
   for (let n = 0; n < syntaxList.children.length; n += 2) {
     const variableDeclaration = syntaxList.children[n] as TSMorphOtherNodeType;
 
-    // TODO ObjectBindingPattern
     // TODO ArrayBindingPattern
-    const identifier = variableDeclaration.children![0] as TSMorphOtherNodeType;
+    if (variableDeclaration.children![0].kind === SyntaxKind.Identifier) {
+      const identifier = variableDeclaration.children![0] as TSMorphOtherNodeType;
 
-    variables[variables.length - 1][identifier.text!] = variableDeclaration.children!.length === 1
-      || variableDeclaration.children!.length < 5 && variableDeclaration.children![1].kind === SyntaxKind.ColonToken
-      ? undefined
-      : evalExpression(variableDeclaration.children![3 < variableDeclaration.children!.length ? 4 : 2] as TSMorphOtherNodeType, variables)?.value;
+      variables[variables.length - 1][identifier.text!] = variableDeclaration.children!.length === 1
+        || variableDeclaration.children!.length < 5 && variableDeclaration.children![1].kind === SyntaxKind.ColonToken
+        ? undefined
+        : evalExpression(variableDeclaration.children![3 < variableDeclaration.children!.length ? 4 : 2] as TSMorphOtherNodeType, variables)?.value;
 
-    if (isExport)
-      exportProps[identifier.text!] = variables[variables.length - 1][identifier.text!];
+      if (isExport)
+        exportProps[identifier.text!] = variables[variables.length - 1][identifier.text!];
+    } else if (variableDeclaration.children![0].kind === SyntaxKind.ObjectBindingPattern)
+      evalObjectBindingPattern(
+        variableDeclaration.children![0] as TSMorphOtherNodeType,
+        variables,
+        evalExpression(variableDeclaration.children![3 < variableDeclaration.children!.length ? 4 : 2] as TSMorphOtherNodeType, variables)?.value,
+        exportProps,
+        isExport
+      );
   }
 
   return exportProps;
@@ -179,7 +189,7 @@ function evalSyntax(syntax: TSMorphOtherNodeType, variables: { [key: string]: an
     variables.push({});
 
     if (syntax.children![2].kind === SyntaxKind.VariableDeclarationList)
-      evalVariableDeclarationList(syntax.children![2] as TSMorphOtherNodeType, variables, false);
+      evalVariableDeclarationList(syntax.children![2] as TSMorphOtherNodeType, variables);
     else
       evalSyntax(syntax.children![2] as TSMorphOtherNodeType, variables, modules);
 
@@ -690,19 +700,25 @@ function getFunc(blockOrSyntax: TSMorphOtherNodeType, parametersSyntaxList: TSMo
   };
 }
 
-function evalObjectBindingPattern(objectBindingPattern: TSMorphOtherNodeType, variables: { [key: string]: any }[], object: any) {
+function evalObjectBindingPattern(objectBindingPattern: TSMorphOtherNodeType, variables: { [key: string]: any }[], object: any, exportProps: { [key: string]: any } = {}, isExport = false) {
   const syntaxList = objectBindingPattern.children![1] as TSMorphSyntaxListType;
   for (let o = 0; o < syntaxList.children.length; o += 2) {
     const bindingElement = syntaxList.children![o] as TSMorphOtherNodeType;
     if (2 < bindingElement.children!.length) {
       const identifier = bindingElement.children![0] as TSMorphOtherNodeType;
-      if (bindingElement.children![2].kind === SyntaxKind.Identifier)
+      if (bindingElement.children![2].kind === SyntaxKind.Identifier) {
         variables[variables.length - 1][bindingElement.children![2].text!] = object[identifier.text!];
-      else if (bindingElement.children![2].kind === SyntaxKind.ObjectBindingPattern)
-        evalObjectBindingPattern(bindingElement.children![2] as TSMorphOtherNodeType, variables, object[identifier.text!]);
+
+        if (isExport)
+          exportProps[identifier.text!] = variables[variables.length - 1][bindingElement.children![2].text!];
+      } else if (bindingElement.children![2].kind === SyntaxKind.ObjectBindingPattern)
+        evalObjectBindingPattern(bindingElement.children![2] as TSMorphOtherNodeType, variables, object[identifier.text!], exportProps, isExport);
     } else {
       const identifier = bindingElement.children![0] as TSMorphOtherNodeType;
       variables[variables.length - 1][identifier.text!] = object[identifier.text!];
+
+      if (isExport)
+        exportProps[identifier.text!] = variables[variables.length - 1][identifier.text!];
     }
   }
 }

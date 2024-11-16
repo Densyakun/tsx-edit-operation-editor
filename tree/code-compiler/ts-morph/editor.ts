@@ -1,4 +1,4 @@
-import { EditorType, EditorUIType, getNodeEditorFunc, TreeNodeListItemType, TreeNodeType } from "@/tree/lib/type";
+import { AddChildNodeType, EditorType, EditorUIType, getNodeEditorFunc, TreeNodeListItemType, TreeNodeType } from "@/tree/lib/type";
 import { SyntaxKind } from "ts-morph";
 import { OtherNodeTypeId, TSMorphProjectTypeId, SourceFileTypeId, SyntaxListTypeId, TSMorphOtherNodeType, TSMorphProjectType, TSMorphSourceFileType, TSMorphSyntaxListType } from "./compiler";
 import { getNodeByBreadcrumbs } from "@/tree/lib/util";
@@ -131,48 +131,59 @@ function getIdentifiersCheckParent(nodeTree: Readonly<TreeNodeType>, breadcrumbP
   return identifiers;
 }
 
-const getAddChildNodeList = (node: TreeNodeType, setter: (node: TreeNodeType) => void) => [
+const addChildNodeToSyntaxList = (node: TreeNodeType, isSourceFile: boolean, newNode: TSMorphOtherNodeType) => isSourceFile
+  ? {
+    ...node,
+    syntaxList: {
+      type: SyntaxListTypeId,
+      kind: SyntaxKind.SyntaxList,
+      children: [
+        ...(node as TSMorphSourceFileType).syntaxList.children,
+        newNode
+      ],
+    },
+  } as TSMorphSourceFileType
+  : {
+    ...node,
+    children: [
+      ...(node as TSMorphSyntaxListType).children,
+      newNode
+    ],
+  } as TSMorphSyntaxListType;
+
+const getAddChildNodeListToSyntaxList = (node: TreeNodeType, setter: (node: TreeNodeType) => void, isSourceFile: boolean): AddChildNodeType[] => [
   {
     label: "Block",
-    func: () => {
-      setter({
-        ...node,
-        syntaxList: {
-          type: SyntaxListTypeId,
-          kind: SyntaxKind.SyntaxList,
+    func: () =>
+      setter(addChildNodeToSyntaxList(node, isSourceFile,
+        {
+          type: OtherNodeTypeId,
+          kind: SyntaxKind.Block,
           children: [
-            ...(node as TSMorphSourceFileType).syntaxList.children,
             {
               type: OtherNodeTypeId,
-              kind: SyntaxKind.Block,
-              children: [
-                {
-                  type: OtherNodeTypeId,
-                  kind: SyntaxKind.OpenBraceToken,
-                  text: "{",
-                  leadingCommentRanges: [],
-                  trailingCommentRanges: [],
-                  whitespaces: ["\r\n"],
-                },
-                {
-                  type: SyntaxListTypeId,
-                  kind: SyntaxKind.SyntaxList,
-                  children: [],
-                },
-                {
-                  type: OtherNodeTypeId,
-                  kind: SyntaxKind.CloseBraceToken,
-                  text: "}",
-                  leadingCommentRanges: [],
-                  trailingCommentRanges: [],
-                  whitespaces: ["\r\n"],
-                },
-              ]
+              kind: SyntaxKind.OpenBraceToken,
+              text: "{",
+              leadingCommentRanges: [],
+              trailingCommentRanges: [],
+              whitespaces: ["\r\n"],
             },
-          ],
-        },
-      } as TSMorphSourceFileType);
-    },
+            {
+              type: SyntaxListTypeId,
+              kind: SyntaxKind.SyntaxList,
+              children: [],
+            },
+            {
+              type: OtherNodeTypeId,
+              kind: SyntaxKind.CloseBraceToken,
+              text: "}",
+              leadingCommentRanges: [],
+              trailingCommentRanges: [],
+              whitespaces: ["\r\n"],
+            },
+          ]
+        }
+      ))
   },
 ];
 
@@ -196,13 +207,14 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
       `Comment ranges at EOF: ${JSON.stringify((node as TSMorphSourceFileType).commentRangesAtEndOfFile)}`,
       `Whitespaces: ${JSON.stringify((node as TSMorphSourceFileType).whitespaces)}`,
     ],
-    addChildNodeList: getAddChildNodeList(node, setter),
+    addChildNodeList: getAddChildNodeListToSyntaxList(node, setter, true),
   }),
-  [SyntaxListTypeId]: (nodeTree, breadcrumbPaths, node) => ({
+  [SyntaxListTypeId]: (nodeTree, breadcrumbPaths, node, treeCompilers, setter) => ({
     title: "ts-morph Syntax list",
     itemLists: {
       "Syntaxes": nodeChildrenItemList(node as TSMorphSyntaxListType),
     },
+    addChildNodeList: getAddChildNodeListToSyntaxList(node, setter, false),
   }),
   [OtherNodeTypeId]: (nodeTree, breadcrumbPaths, node, treeCompilers, setter) => {
     let editorui: EditorUIType | undefined;

@@ -8,6 +8,7 @@ import { AddonJsonType, AddonType } from "./type";
 
 const { getFromSyntaxList } = treeCodeCompilerTSMorphCompilerNamespace;
 
+// TODO varの再宣言と関数スコープ
 // TODO false, true, null, this (Expressionとして対応)
 // TODO undefined keyword (Identifier)
 // TODO while, do...while, for-in, break, continue, ラベル付きブロック

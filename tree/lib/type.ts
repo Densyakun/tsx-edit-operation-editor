@@ -1,3 +1,4 @@
+import * as yup from "yup";
 import { TreeCompilerType } from "../tree-compiler/type";
 
 export type TreeNodeType = {
@@ -23,7 +24,7 @@ export type NodeEditorType = {
   topItemListKeys?: string[];
   dataTexts?: string[];
   editorui?: EditorUIType;
-  addChildNodeList?: AddChildNodeType[];
+  addChildNodeList?: { [key: string]: AddChildNodeType };
 };
 
 export type EditorUIType = {
@@ -47,6 +48,12 @@ export type EditorType = {
 };
 
 export type AddChildNodeType = {
-  label: string,
-  func: () => void,
+  editorSchema?: {
+    [key: string]: {
+      label: string;
+      schema: yup.AnyObject;
+      selectItems?: string[] | [string, number][];
+    }
+  };
+  func: (data: any) => void;
 };

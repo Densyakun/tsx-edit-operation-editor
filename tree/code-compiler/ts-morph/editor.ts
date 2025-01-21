@@ -1,5 +1,6 @@
 import { AddChildNodeType, EditorType, EditorUIType, getNodeEditorFunc, TreeNodeListItemType, TreeNodeType } from "@/tree/lib/type";
 import { SyntaxKind } from "ts-morph";
+import * as yup from "yup";
 import { OtherNodeTypeId, TSMorphProjectTypeId, SourceFileTypeId, SyntaxListTypeId, TSMorphOtherNodeType, TSMorphProjectType, TSMorphSourceFileType, TSMorphSyntaxListType } from "./compiler";
 import { getNodeByBreadcrumbs } from "@/tree/lib/util";
 import { TreeCompilerType } from "@/tree/tree-compiler/type";
@@ -151,9 +152,8 @@ const addChildNodeToSyntaxList = (node: TreeNodeType, isSourceFile: boolean, new
     ],
   } as TSMorphSyntaxListType;
 
-const getAddChildNodeListToSyntaxList = (node: TreeNodeType, setter: (node: TreeNodeType) => void, isSourceFile: boolean): AddChildNodeType[] => [
-  {
-    label: "Block",
+const getAddChildNodeListToSyntaxList = (node: TreeNodeType, setter: (node: TreeNodeType) => void, isSourceFile: boolean): { [key: string]: AddChildNodeType } => ({
+  "Block": {
     func: () =>
       setter(addChildNodeToSyntaxList(node, isSourceFile,
         {
@@ -185,7 +185,92 @@ const getAddChildNodeListToSyntaxList = (node: TreeNodeType, setter: (node: Tree
         }
       ))
   },
-];
+  "VariableStatement": {
+    editorSchema: {
+      type: {
+        label: "Type",
+        schema: yup.string().matches(/(let|const|var)/).required(),
+        selectItems: ["let", "const", "var"]
+      },
+      identifier: {
+        label: "Identifier",
+        schema: yup.string().required()
+      },
+    },
+    func: data => {
+      setter(addChildNodeToSyntaxList(node, isSourceFile,
+        {
+          type: OtherNodeTypeId,
+          kind: SyntaxKind.VariableStatement,
+          children: [
+            {
+              type: OtherNodeTypeId,
+              kind: SyntaxKind.VariableDeclarationList,
+              children: [
+                {
+                  type: OtherNodeTypeId,
+                  kind: data.type === "let"
+                    ? SyntaxKind.LetKeyword
+                    : data.type === "const"
+                      ? SyntaxKind.ConstKeyword
+                      : SyntaxKind.VarKeyword,
+                  text: data.type,
+                  leadingCommentRanges: [],
+                  trailingCommentRanges: [],
+                  whitespaces: ["\r\n"],
+                },
+                {
+                  type: SyntaxListTypeId,
+                  kind: SyntaxKind.SyntaxList,
+                  children: [
+                    {
+                      type: OtherNodeTypeId,
+                      kind: SyntaxKind.VariableDeclaration,
+                      children: [
+                        {
+                          type: OtherNodeTypeId,
+                          kind: SyntaxKind.Identifier,
+                          text: data.identifier,
+                          leadingCommentRanges: [],
+                          trailingCommentRanges: [],
+                          whitespaces: [" "],
+                        },
+                        {
+                          type: OtherNodeTypeId,
+                          kind: SyntaxKind.EqualsToken,
+                          text: "=",
+                          leadingCommentRanges: [],
+                          trailingCommentRanges: [],
+                          whitespaces: [" "],
+                        },
+                        { // TODO expressions
+                          type: OtherNodeTypeId,
+                          kind: SyntaxKind.NumericLiteral,
+                          text: "0",
+                          leadingCommentRanges: [],
+                          trailingCommentRanges: [],
+                          whitespaces: [" "],
+                        },
+                      ]
+                    },
+                  ]
+                },
+              ]
+            },
+            {
+              type: OtherNodeTypeId,
+              kind: SyntaxKind.SemicolonToken,
+              text: ";",
+              leadingCommentRanges: [],
+              trailingCommentRanges: [],
+              whitespaces: [""],
+            },
+          ]
+        }
+      ));
+    }
+  },
+});
 
 const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
   [TSMorphProjectTypeId]: (nodeTree, breadcrumbPaths, node) => ({

@@ -2,39 +2,71 @@ import { useSnapshot } from "valtio";
 import treeState from "../lib/state";
 import { getNodeEditor, putNodeByBreadcrumbs } from "../lib/util";
 import { AddChildNodeType, EditorType } from "../lib/type";
-import { Breadcrumbs, Button, Dialog, DialogTitle, FormControl, IconButton, InputLabel, Link, List, ListItem, ListItemButton, ListItemText, MenuItem, Select, SelectChangeEvent, Stack, TextField, Typography } from "@mui/material";
+import { AppBar, Breadcrumbs, Button, Dialog, Divider, FormControl, IconButton, InputLabel, Link, List, ListItem, ListItemButton, ListItemText, MenuItem, Select, SelectChangeEvent, Stack, TextField, Toolbar, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
 import HomeIcon from "@mui/icons-material/Home";
 import type { NodeTreeEditorStateType } from "../lib/createNodeTreeEditorState";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 import ItemList from "./ItemList";
 import { useState } from "react";
+import NodeCreationForm from "./NodeCreationForm";
 
 export interface SimpleDialogProps {
   open: boolean;
   onClose: () => void;
-  addChildNodeList: AddChildNodeType[];
+  addChildNodeList: { [key: string]: AddChildNodeType };
 }
 
 function SimpleDialog(props: SimpleDialogProps) {
   const { onClose, open, addChildNodeList } = props;
+  const [selectedKey, setSelectedKey] = useState("");
 
   const handleClose = () => {
     onClose();
   };
 
   return (
-    <Dialog onClose={handleClose} open={open}>
-      <DialogTitle>Add child node</DialogTitle>
-      <List sx={{ pt: 0 }}>
-        {addChildNodeList.map(({ label, func }) =>
-          <ListItem disableGutters key={label}>
-            <ListItemButton onClick={() => func()}>
-              <ListItemText primary={label} />
-            </ListItemButton>
-          </ListItem>
-        )}
-      </List>
+    <Dialog
+      fullScreen
+      onClose={handleClose}
+      scroll="paper"
+      open={open}
+    >
+      <AppBar sx={{ position: 'relative' }} color="inherit">
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            onClick={handleClose}
+            aria-label="close"
+          >
+            <CloseIcon />
+          </IconButton>
+          <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
+            Add child node
+          </Typography>
+        </Toolbar>
+      </AppBar>
+      <Stack
+        sx={{
+          width: "100%",
+          height: "100%",
+        }}
+        direction="row"
+        divider={<Divider sx={{ height: "100%" }} orientation="vertical" flexItem />}
+      >
+        <List sx={{ pt: 0 }}>
+          {Object.keys(addChildNodeList).map(key =>
+            <ListItem disableGutters key={key}>
+              <ListItemButton onClick={() => setSelectedKey(key)}>
+                <ListItemText primary={key} />
+              </ListItemButton>
+            </ListItem>
+          )}
+        </List>
+        {addChildNodeList[selectedKey] && <NodeCreationForm title={selectedKey} addChildNode={addChildNodeList[selectedKey]} />}
+      </Stack>
     </Dialog>
   );
 }

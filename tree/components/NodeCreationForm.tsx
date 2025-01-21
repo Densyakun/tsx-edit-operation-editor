@@ -61,7 +61,7 @@ export default function NodeCreationForm({
                       label={addChildNode.editorSchema![key].label}
                       {...field}
                     >
-                      {addChildNode.editorSchema![key].selectItems.map((item) =>
+                      {addChildNode.editorSchema![key].selectItems?./** ビルド時のエラー回避 */map((item) =>
                         <MenuItem key={item as string} value={item as string}>{item}</MenuItem>
                       )}
                     </Select>
@@ -91,7 +91,7 @@ export default function NodeCreationForm({
                       label={addChildNode.editorSchema![key].label}
                       {...field}
                     >
-                      {addChildNode.editorSchema![key].selectItems.map((item) =>
+                      {addChildNode.editorSchema![key].selectItems?./** ビルド時のエラー回避 */map((item) =>
                         <MenuItem key={item[0]} value={item[1]}>{item[0]}</MenuItem>
                       )}
                     </Select>

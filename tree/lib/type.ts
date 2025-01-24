@@ -23,16 +23,8 @@ export type NodeEditorType = {
   itemLists?: { [key: string]: TreeNodeListItemType[] };
   topItemListKeys?: string[];
   dataTexts?: string[];
-  editorui?: EditorUIType;
-  addChildNodeList?: { [key: string]: AddChildNodeType };
-};
-
-export type EditorUIType = {
-  label: string;
-  type: 'string' | 'number';
-  selectItems?: string[];
-  getter: () => string;
-  setter: (value: string) => void;
+  editorui?: NodeEditorUIType;
+  addChildNodeList?: { [key: string]: NodeEditorUIType };
 };
 
 export type TreeNodeListItemType = {
@@ -47,7 +39,7 @@ export type EditorType = {
   getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc };
 };
 
-export type AddChildNodeType = {
+export type NodeEditorUIType = {
   editorSchema?: {
     [key: string]: {
       label: string;
@@ -55,5 +47,6 @@ export type AddChildNodeType = {
       selectItems?: string[] | [string, number][];
     }
   };
-  func: (data: any) => void;
+  getter?: () => any;
+  setter: (data: any) => void;
 };

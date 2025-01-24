@@ -1,8 +1,8 @@
 import { useSnapshot } from "valtio";
 import treeState from "../lib/state";
 import { getNodeEditor, putNodeByBreadcrumbs } from "../lib/util";
-import { AddChildNodeType, EditorType } from "../lib/type";
-import { AppBar, Breadcrumbs, Button, Dialog, Divider, FormControl, IconButton, InputLabel, Link, List, ListItem, ListItemButton, ListItemText, MenuItem, Select, SelectChangeEvent, Stack, TextField, Toolbar, Typography } from "@mui/material";
+import { EditorType, NodeEditorUIType } from "../lib/type";
+import { AppBar, Breadcrumbs, Button, Dialog, Divider, IconButton, Link, List, ListItem, ListItemButton, ListItemText, Stack, Toolbar, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import HomeIcon from "@mui/icons-material/Home";
@@ -10,12 +10,12 @@ import type { NodeTreeEditorStateType } from "../lib/createNodeTreeEditorState";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 import ItemList from "./ItemList";
 import { useState } from "react";
-import NodeCreationForm from "./NodeCreationForm";
+import NodeEditForm from "./NodeEditForm";
 
 export interface SimpleDialogProps {
   open: boolean;
   onClose: () => void;
-  addChildNodeList: { [key: string]: AddChildNodeType };
+  addChildNodeList: { [key: string]: NodeEditorUIType };
 }
 
 function SimpleDialog(props: SimpleDialogProps) {
@@ -65,7 +65,7 @@ function SimpleDialog(props: SimpleDialogProps) {
             </ListItem>
           )}
         </List>
-        {addChildNodeList[selectedKey] && <NodeCreationForm title={selectedKey} addChildNode={addChildNodeList[selectedKey]} />}
+        {addChildNodeList[selectedKey] && <NodeEditForm title={selectedKey} editorui={addChildNodeList[selectedKey]} />}
       </Stack>
     </Dialog>
   );
@@ -131,45 +131,7 @@ export default function NodeEditor({ nodeTreeEditorState }: { nodeTreeEditorStat
         </>
         : null
       }
-      {nodeEditor.editorui && (
-        nodeEditor.editorui.type === "string"
-          ? nodeEditor.editorui.selectItems
-            ? <FormControl fullWidth>
-              <InputLabel>{nodeEditor.editorui.label}</InputLabel>
-              <Select
-                value={nodeEditor.editorui.getter()}
-                onChange={(event: SelectChangeEvent) => {
-                  nodeEditor.editorui?.setter(event.target.value);
-                }}
-                label={nodeEditor.editorui.label}
-              >
-                {nodeEditor.editorui.selectItems.map((item, index) =>
-                  <MenuItem key={index} value={item}>{item}</MenuItem>
-                )}
-              </Select>
-            </FormControl>
-            : <TextField
-              label={nodeEditor.editorui.label}
-              value={nodeEditor.editorui.getter()}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                nodeEditor.editorui?.setter(event.target.value);
-              }}
-            />
-          : nodeEditor.editorui.type === "number"
-            ? <>
-              <TextField
-                label={nodeEditor.editorui.label}
-                value={nodeEditor.editorui.getter()}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  nodeEditor.editorui?.setter(event.target.value);
-                }}
-              />
-              <Typography gutterBottom>
-                {Number(nodeEditor.editorui.getter()).toString()}
-              </Typography>
-            </>
-            : null
-      )}
+      {nodeEditor.editorui && <NodeEditForm editorui={nodeEditor.editorui} />}
       {nodeEditor.addChildNodeList && <>
         <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
           Add

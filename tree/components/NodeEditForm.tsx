@@ -1,22 +1,25 @@
 import { Controller, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { Box, Button, Checkbox, FormControl, FormControlLabel, FormHelperText, FormLabel, InputLabel, MenuItem, Select, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, Checkbox, FormControl, FormControlLabel, FormHelperText, FormLabel, InputLabel, MenuItem, Select, Snackbar, SnackbarCloseReason, Stack, TextField, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import { AddChildNodeType } from "../lib/type";
+import { NodeEditorUIType } from "../lib/type";
+import { useState } from "react";
 
-export default function NodeCreationForm({
-  title,
-  addChildNode,
+export default function NodeEditForm({
+  title = "",
+  editorui,
+  isAdding = false,
 }: {
-  title: string,
-  addChildNode: AddChildNodeType,
+  title?: string,
+  editorui: NodeEditorUIType,
+  isAdding?: boolean,
 }) {
   const schema: yup.ObjectSchema<{ [x: string]: any }> =
-    addChildNode.editorSchema
+    editorui.editorSchema
       ? yup.object(
-        Object.fromEntries(Object.keys(addChildNode.editorSchema).map(key =>
-          [key, addChildNode.editorSchema![key].schema]
+        Object.fromEntries(Object.keys(editorui.editorSchema).map(key =>
+          [key, editorui.editorSchema![key].schema]
         )) as yup.ObjectShape
       ).required()
       : yup.object();
@@ -27,6 +30,7 @@ export default function NodeCreationForm({
     control,
     formState: { errors },
   } = useForm({
+    defaultValues: editorui.getter && editorui.getter(),
     resolver: yupResolver(schema),
   });
 
@@ -38,7 +42,7 @@ export default function NodeCreationForm({
     }}
   >
     <form onSubmit={handleSubmit(data => {
-      addChildNode.func(data);
+      editorui.setter(data);
     })}>
       <FormLabel component="legend">{title}</FormLabel>
       <Stack spacing={1}>
@@ -53,15 +57,15 @@ export default function NodeCreationForm({
               name={key}
               control={control}
               render={({ field }) => {
-                if (addChildNode.editorSchema![key].selectItems)
+                if (editorui.editorSchema![key].selectItems)
                   return <FormControl sx={{ minWidth: 120 }} error={Boolean(errors[key])}>
                     <InputLabel id={`${key}-select-label`}>Age</InputLabel>
                     <Select
                       labelId={`${key}-select-label`}
-                      label={addChildNode.editorSchema![key].label}
+                      label={editorui.editorSchema![key].label}
                       {...field}
                     >
-                      {addChildNode.editorSchema![key].selectItems?./** ビルド時のエラー回避 */map((item) =>
+                      {editorui.editorSchema![key].selectItems?./** ビルド時のエラー回避 */map((item) =>
                         <MenuItem key={item as string} value={item as string}>{item}</MenuItem>
                       )}
                     </Select>
@@ -69,7 +73,7 @@ export default function NodeCreationForm({
                   </FormControl>;
 
                 return <TextField
-                  label={addChildNode.editorSchema![key].label}
+                  label={editorui.editorSchema![key].label}
                   error={Boolean(errors[key])}
                   helperText={errors[key] && String(errors[key]?.message)}
                   {...field}
@@ -83,15 +87,15 @@ export default function NodeCreationForm({
               name={key}
               control={control}
               render={({ field }) => {
-                if (addChildNode.editorSchema![key].selectItems)
+                if (editorui.editorSchema![key].selectItems)
                   return <FormControl sx={{ minWidth: 120 }} error={Boolean(errors[key])}>
                     <InputLabel id={`${key}-select-label`}>Age</InputLabel>
                     <Select
                       labelId={`${key}-select-label`}
-                      label={addChildNode.editorSchema![key].label}
+                      label={editorui.editorSchema![key].label}
                       {...field}
                     >
-                      {addChildNode.editorSchema![key].selectItems?./** ビルド時のエラー回避 */map((item) =>
+                      {editorui.editorSchema![key].selectItems?./** ビルド時のエラー回避 */map((item) =>
                         <MenuItem key={item[0]} value={item[1]}>{item[0]}</MenuItem>
                       )}
                     </Select>
@@ -99,7 +103,7 @@ export default function NodeCreationForm({
                   </FormControl>;
 
                 return <TextField
-                  label={addChildNode.editorSchema![key].label}
+                  label={editorui.editorSchema![key].label}
                   type="number"
                   error={Boolean(errors[key])}
                   helperText={errors[key] && String(errors[key]?.message)}
@@ -116,7 +120,7 @@ export default function NodeCreationForm({
               render={({ field }) =>
                 <FormControlLabel
                   control={<Checkbox {...field} />}
-                  label={addChildNode.editorSchema![key].label}
+                  label={editorui.editorSchema![key].label}
                 />
               }
             />;
@@ -128,7 +132,7 @@ export default function NodeCreationForm({
               control={control}
               render={({ field }) =>
                 <TextField
-                  label={addChildNode.editorSchema![key].label}
+                  label={editorui.editorSchema![key].label}
                   type="number"
                   error={Boolean(errors[key])}
                   helperText={errors[key] && String(errors[key]?.message)}
@@ -140,10 +144,39 @@ export default function NodeCreationForm({
           return <Typography>{field.type}</Typography>;
         })}
 
-        <Button type="submit" variant="contained" startIcon={<AddIcon />}>
-          Add
-        </Button>
+        <SubmitButton isAdding={isAdding} />
       </Stack>
     </form>
   </Box>;
+}
+
+function SubmitButton({ isAdding }: { isAdding: boolean }) {
+  const [open, setOpen] = useState(false);
+
+  const handleClick = () => {
+    setOpen(true);
+  };
+
+  const handleClose = (
+    event: React.SyntheticEvent | Event,
+    reason?: SnackbarCloseReason,
+  ) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+
+    setOpen(false);
+  };
+
+  return <>
+    <Button type="submit" variant="contained" startIcon={isAdding && <AddIcon />} onClick={handleClick}>
+      {isAdding ? "Add" : "Change"}
+    </Button>
+    <Snackbar
+      open={open}
+      autoHideDuration={2000}
+      onClose={handleClose}
+      message="Node changed"
+    />
+  </>;
 }

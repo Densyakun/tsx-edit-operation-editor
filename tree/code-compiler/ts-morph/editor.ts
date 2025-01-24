@@ -1,4 +1,4 @@
-import { AddChildNodeType, EditorType, EditorUIType, getNodeEditorFunc, TreeNodeListItemType, TreeNodeType } from "@/tree/lib/type";
+import { EditorType, getNodeEditorFunc, NodeEditorUIType, TreeNodeListItemType, TreeNodeType } from "@/tree/lib/type";
 import { SyntaxKind } from "ts-morph";
 import * as yup from "yup";
 import { OtherNodeTypeId, TSMorphProjectTypeId, SourceFileTypeId, SyntaxListTypeId, TSMorphOtherNodeType, TSMorphProjectType, TSMorphSourceFileType, TSMorphSyntaxListType } from "./compiler";
@@ -152,9 +152,9 @@ const addChildNodeToSyntaxList = (node: TreeNodeType, isSourceFile: boolean, new
     ],
   } as TSMorphSyntaxListType;
 
-const getAddChildNodeListToSyntaxList = (node: TreeNodeType, setter: (node: TreeNodeType) => void, isSourceFile: boolean): { [key: string]: AddChildNodeType } => ({
+const getAddChildNodeListToSyntaxList = (node: TreeNodeType, setter: (node: TreeNodeType) => void, isSourceFile: boolean): { [key: string]: NodeEditorUIType } => ({
   "Block": {
-    func: () =>
+    setter: () =>
       setter(addChildNodeToSyntaxList(node, isSourceFile,
         {
           type: OtherNodeTypeId,
@@ -197,7 +197,7 @@ const getAddChildNodeListToSyntaxList = (node: TreeNodeType, setter: (node: Tree
         schema: yup.string().required()
       },
     },
-    func: data => {
+    setter: data => {
       setter(addChildNodeToSyntaxList(node, isSourceFile,
         {
           type: OtherNodeTypeId,
@@ -302,14 +302,27 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
     addChildNodeList: getAddChildNodeListToSyntaxList(node, setter, false),
   }),
   [OtherNodeTypeId]: (nodeTree, breadcrumbPaths, node, treeCompilers, setter) => {
-    let editorui: EditorUIType | undefined;
+    let editorui: NodeEditorUIType | undefined;
 
     if ((node as TSMorphOtherNodeType).kind === SyntaxKind.FirstLiteralToken)
       editorui = {
-        label: "Value",
-        type: "number",
-        getter: () => (node as TSMorphOtherNodeType).text!,
-        setter: (value: string) => {
+        editorSchema: {
+          value: {
+            label: "Value",
+            schema: yup
+              .string()
+              .test(
+                'is-james',
+                (d) => `${d.path} is not Number`,
+                (value) => !Number.isNaN(Number(value)),
+              )
+              .required()
+          },
+        },
+        getter: () => ({
+          value: (node as TSMorphOtherNodeType).text!,
+        }),
+        setter: ({ value }) => {
           const newNode = { ...node } as TSMorphOtherNodeType;
           newNode.text = value;
           setter(newNode);
@@ -317,10 +330,16 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
       };
     else if ((node as TSMorphOtherNodeType).kind === SyntaxKind.StringLiteral)
       editorui = {
-        label: "Value",
-        type: "string",
-        getter: () => (node as TSMorphOtherNodeType).text!.substring(1, (node as TSMorphOtherNodeType).text!.length - 1),
-        setter: (value: string) => {
+        editorSchema: {
+          value: {
+            label: "Value",
+            schema: yup.string().required()
+          },
+        },
+        getter: () => ({
+          value: (node as TSMorphOtherNodeType).text!.substring(1, (node as TSMorphOtherNodeType).text!.length - 1),
+        }),
+        setter: ({ value }) => {
           const newNode = { ...node } as TSMorphOtherNodeType;
           // TODO エスケープ文字
           newNode.text = `"${value}"`;
@@ -333,11 +352,17 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
       // TODO 変数名の定義などはSelectではなくTextField(selectItems: undefined)にする
 
       editorui = {
-        label: "Value",
-        type: "string",
-        selectItems: identifiers,
-        getter: () => (node as TSMorphOtherNodeType).text!,
-        setter: (value: string) => {
+        editorSchema: {
+          value: {
+            label: "Value",
+            schema: yup.string().required(),
+            selectItems: identifiers,
+          },
+        },
+        getter: () => ({
+          value: (node as TSMorphOtherNodeType).text!,
+        }),
+        setter: ({ value }) => {
           const newNode = { ...node } as TSMorphOtherNodeType;
           newNode.text = value;
           setter(newNode);

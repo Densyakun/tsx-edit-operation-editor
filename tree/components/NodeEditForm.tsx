@@ -59,7 +59,7 @@ export default function NodeEditForm({
               render={({ field }) => {
                 if (editorui.editorSchema![key].selectItems)
                   return <FormControl sx={{ minWidth: 120 }} error={Boolean(errors[key])}>
-                    <InputLabel id={`${key}-select-label`}>Age</InputLabel>
+                    <InputLabel id={`${key}-select-label`}>{editorui.editorSchema![key].label}</InputLabel>
                     <Select
                       labelId={`${key}-select-label`}
                       label={editorui.editorSchema![key].label}

@@ -65,7 +65,7 @@ function SimpleDialog(props: SimpleDialogProps) {
             </ListItem>
           )}
         </List>
-        {addChildNodeList[selectedKey] && <NodeEditForm title={selectedKey} editorui={addChildNodeList[selectedKey]} />}
+        {addChildNodeList[selectedKey] && <NodeEditForm editorui={addChildNodeList[selectedKey]} />}
       </Stack>
     </Dialog>
   );

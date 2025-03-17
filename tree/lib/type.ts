@@ -1,5 +1,5 @@
-import * as yup from "yup";
 import { TreeCompilerType } from "../tree-compiler/type";
+import { RJSFSchema } from "@rjsf/utils";
 
 export type TreeNodeType = {
   type: string;
@@ -40,13 +40,7 @@ export type EditorType = {
 };
 
 export type NodeEditorUIType = {
-  editorSchema?: {
-    [key: string]: {
-      label: string;
-      schema: yup.AnyObject;
-      selectItems?: string[] | [string, number][];
-    }
-  };
+  editorSchema?: RJSFSchema;
   getter?: () => any;
   setter: (data: any) => void;
 };

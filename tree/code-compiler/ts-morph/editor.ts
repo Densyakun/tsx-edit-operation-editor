@@ -1,6 +1,5 @@
 import { EditorType, getNodeEditorFunc, NodeEditorUIType, TreeNodeListItemType, TreeNodeType } from "@/tree/lib/type";
 import { SyntaxKind } from "ts-morph";
-import * as yup from "yup";
 import { OtherNodeTypeId, TSMorphProjectTypeId, SourceFileTypeId, SyntaxListTypeId, TSMorphOtherNodeType, TSMorphProjectType, TSMorphSourceFileType, TSMorphSyntaxListType } from "./compiler";
 import { getNodeByBreadcrumbs } from "@/tree/lib/util";
 import { TreeCompilerType } from "@/tree/tree-compiler/type";
@@ -154,6 +153,10 @@ const addChildNodeToSyntaxList = (node: TreeNodeType, isSourceFile: boolean, new
 
 const getAddChildNodeListToSyntaxList = (node: TreeNodeType, setter: (node: TreeNodeType) => void, isSourceFile: boolean): { [key: string]: NodeEditorUIType } => ({
   "Block": {
+    editorSchema: {
+      title: 'Block',
+      type: 'object',
+    },
     setter: () =>
       setter(addChildNodeToSyntaxList(node, isSourceFile,
         {
@@ -187,14 +190,12 @@ const getAddChildNodeListToSyntaxList = (node: TreeNodeType, setter: (node: Tree
   },
   "VariableStatement": {
     editorSchema: {
-      type: {
-        label: "Type",
-        schema: yup.string().matches(/(let|const|var)/).required(),
-        selectItems: ["let", "const", "var"]
-      },
-      identifier: {
-        label: "Identifier",
-        schema: yup.string().required()
+      title: 'VariableStatement',
+      type: 'object',
+      required: ['type', 'identifier'],
+      properties: {
+        type: { type: 'string', title: 'Type', enum: ['let', 'const', 'var'] },
+        identifier: { type: 'string', title: 'Identifier' },
       },
     },
     setter: data => {
@@ -307,16 +308,12 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
     if ((node as TSMorphOtherNodeType).kind === SyntaxKind.FirstLiteralToken)
       editorui = {
         editorSchema: {
-          value: {
-            label: "Value",
-            schema: yup
-              .string()
-              .test(
-                'is-james',
-                (d) => `${d.path} is not Number`,
-                (value) => !Number.isNaN(Number(value)),
-              )
-              .required()
+          title: 'NumericLiteral',
+          type: 'object',
+          required: ['value'],
+          properties: {
+            //value: { type: 'string', title: 'Value' }, // TODO 正規表現を用いて !Number.isNaN(Number(value)) と同等のバリデーションを実装する
+            value: { type: 'number', title: 'Value' },
           },
         },
         getter: () => ({
@@ -331,9 +328,11 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
     else if ((node as TSMorphOtherNodeType).kind === SyntaxKind.StringLiteral)
       editorui = {
         editorSchema: {
-          value: {
-            label: "Value",
-            schema: yup.string().required()
+          title: 'StringLiteral',
+          type: 'object',
+          required: ['value'],
+          properties: {
+            value: { type: 'string', title: 'Value' },
           },
         },
         getter: () => ({
@@ -353,10 +352,11 @@ const getNodeEditorFuncMap: { [key: string]: getNodeEditorFunc } = {
 
       editorui = {
         editorSchema: {
-          value: {
-            label: "Value",
-            schema: yup.string().required(),
-            selectItems: identifiers,
+          title: 'Identifier',
+          type: 'object',
+          required: ['value'],
+          properties: {
+            value: { type: 'string', title: 'Value', enum: identifiers },
           },
         },
         getter: () => ({
